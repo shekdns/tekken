@@ -1,4 +1,4 @@
-package com.example.tekken;
+package com.project.tekken;
 
 import java.time.Instant;
 import java.util.Map;

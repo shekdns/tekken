@@ -1,4 +1,4 @@
-package com.example.tekken;
+package com.project.tekken;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
