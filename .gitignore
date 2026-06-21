@@ -1,0 +1,12 @@
+.gradle/
+build/
+
+.env*
+!.env.example
+application-local.yml
+application-*.local.yml
+
+.idea/
+*.iml
+
+*.log
