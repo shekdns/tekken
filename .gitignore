@@ -19,5 +19,5 @@ dist/
 Thumbs.db
 
 # Local duplicate/legacy project folders
-tekken/
+/tekken/
 frontend/tekken_front/
