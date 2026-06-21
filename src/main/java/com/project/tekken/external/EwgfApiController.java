@@ -17,24 +17,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/ewgf")
 public class EwgfApiController {
 
-    private final EwgfApiClient ewgfApiClient;
+    private final EwgfApiService ewgfApiService;
 
-    public EwgfApiController(EwgfApiClient ewgfApiClient) {
-        this.ewgfApiClient = ewgfApiClient;
+    public EwgfApiController(EwgfApiService ewgfApiService) {
+        this.ewgfApiService = ewgfApiService;
     }
 
     @GetMapping("/battles/{tekkenId}")
     public ResponseEntity<String> getBattles(@PathVariable @NotBlank String tekkenId) {
-        return ewgfApiClient.getBattles(tekkenId);
+        return ewgfApiService.getBattles(tekkenId);
     }
 
     @GetMapping("/profile/{tekkenId}")
     public ResponseEntity<String> getProfile(@PathVariable @NotBlank String tekkenId) {
-        return ewgfApiClient.getProfile(tekkenId);
+        return ewgfApiService.getProfile(tekkenId);
     }
 
     @PostMapping("/profile")
     public ResponseEntity<String> getProfiles(@RequestBody @NotEmpty List<@NotBlank String> tekkenIds) {
-        return ewgfApiClient.getProfiles(tekkenIds);
+        return ewgfApiService.getProfiles(tekkenIds);
     }
 }

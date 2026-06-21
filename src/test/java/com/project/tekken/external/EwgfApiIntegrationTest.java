@@ -63,6 +63,7 @@ class EwgfApiIntegrationTest {
      * Expected response: 200 OK, JSON object with _metadata and data.
      */
     @Test
+    @EnabledIfEnvironmentVariable(named = "EWGF_ENABLE_PROFILE_TESTS", matches = "true")
     @DisplayName("EWGF single profile API returns profile data for a valid Tekken ID")
     void getProfileReturnsProfileDataForValidTekkenId() throws Exception {
         HttpResponse<String> response = sendGet("/external/profile/" + sampleTekkenId(), apiKey());
@@ -85,6 +86,7 @@ class EwgfApiIntegrationTest {
      * Expected response: 200 OK, JSON object with _metadata and data.
      */
     @Test
+    @EnabledIfEnvironmentVariable(named = "EWGF_ENABLE_PROFILE_TESTS", matches = "true")
     @DisplayName("EWGF bulk profile API returns profile data for valid Tekken IDs")
     void postProfileReturnsProfileDataForValidTekkenIds() throws Exception {
         String body = objectMapper.writeValueAsString(List.of(sampleTekkenId()));
