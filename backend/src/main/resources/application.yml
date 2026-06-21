@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: tekken-api
+
+server:
+  port: 8080
+
+ewgf:
+  base-url: https://api.ewgf.gg
+  api-key: ${EWGF_API_KEY:}

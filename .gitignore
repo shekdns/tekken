@@ -1,0 +1,23 @@
+# Java / Gradle
+.gradle/
+build/
+out/
+*.class
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local duplicate/legacy project folders
+tekken/
+frontend/tekken_front/
