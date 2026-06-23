@@ -36,6 +36,25 @@ public class ApiCacheEntity {
     protected ApiCacheEntity() {
     }
 
+    public ApiCacheEntity(String cacheKey, String source, Map<String, Object> responseJson, Instant expiresAt, Instant now) {
+        this.cacheKey = cacheKey;
+        this.source = source;
+        this.responseJson = responseJson;
+        this.expiresAt = expiresAt;
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    public void refresh(Map<String, Object> responseJson, Instant expiresAt, Instant now) {
+        this.responseJson = responseJson;
+        this.expiresAt = expiresAt;
+        this.updatedAt = now;
+    }
+
+    public boolean isFresh(Instant now) {
+        return expiresAt.isAfter(now);
+    }
+
     public String getCacheKey() {
         return cacheKey;
     }

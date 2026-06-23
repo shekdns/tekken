@@ -63,6 +63,36 @@ public class PlayerEntity {
     protected PlayerEntity() {
     }
 
+    public PlayerEntity(String tekkenId, Instant now) {
+        this.tekkenId = tekkenId;
+        this.createdAt = now;
+        this.updatedAt = now;
+        this.fetchedAt = now;
+    }
+
+    public void updateFromProfile(Map<String, Object> profile, Instant now) {
+        PlayerProfileSummary summary = PlayerProfileMapper.toSummary(profile);
+        this.name = summary.name();
+        this.platform = summary.platform();
+        this.platformId = PlayerProfileMapper.text(profile, "platform_id", "platformId", "account.platformId");
+        this.language = summary.language();
+        this.region = summary.region();
+        this.tekkenProwess = summary.tekkenProwess();
+        this.mainCharacterJson = PlayerProfileMapper.object(
+                profile,
+                "main_character",
+                "mainCharacter",
+                "favorite_character",
+                "favoriteCharacter",
+                "most_played_character",
+                "mostPlayedCharacter",
+                "character");
+        this.lastSeen = summary.lastSeen();
+        this.rawProfileJson = profile;
+        this.fetchedAt = now;
+        this.updatedAt = now;
+    }
+
     public Long getId() {
         return id;
     }

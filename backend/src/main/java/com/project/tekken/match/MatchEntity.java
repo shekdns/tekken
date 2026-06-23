@@ -92,6 +92,105 @@ public class MatchEntity {
     protected MatchEntity() {
     }
 
+    public MatchEntity(String externalMatchKey, Instant now) {
+        this.externalMatchKey = externalMatchKey;
+        this.createdAt = now;
+        this.fetchedAt = now;
+    }
+
+    public void updateFromBattle(Map<String, Object> battle, Instant now) {
+        this.battleAt = instant(battle, "battle_at", "battleAt");
+        this.battleType = text(battle, "battle_type", "battleType");
+        this.gameVersion = integer(battle, "game_version", "gameVersion");
+        this.stageId = integer(battle, "stage_id", "stageId");
+        this.winner = integer(battle, "winner");
+        this.p1TekkenId = normalizeTekkenId(text(battle, "p1_tekken_id", "p1TekkenId"));
+        this.p1Name = text(battle, "p1_name", "p1Name");
+        this.p1Char = text(battle, "p1_char", "p1Char", "p1_character", "p1Character");
+        this.p1Region = text(battle, "p1_region", "p1Region");
+        this.p1DanRank = text(battle, "p1_dan_rank", "p1DanRank");
+        this.p1TekkenPower = integer(battle, "p1_tekken_power", "p1TekkenPower", "p1_tekken_prowess");
+        this.p1RoundsWon = integer(battle, "p1_rounds_won", "p1RoundsWon");
+        this.p2TekkenId = normalizeTekkenId(text(battle, "p2_tekken_id", "p2TekkenId"));
+        this.p2Name = text(battle, "p2_name", "p2Name");
+        this.p2Char = text(battle, "p2_char", "p2Char", "p2_character", "p2Character");
+        this.p2Region = text(battle, "p2_region", "p2Region");
+        this.p2DanRank = text(battle, "p2_dan_rank", "p2DanRank");
+        this.p2TekkenPower = integer(battle, "p2_tekken_power", "p2TekkenPower", "p2_tekken_prowess");
+        this.p2RoundsWon = integer(battle, "p2_rounds_won", "p2RoundsWon");
+        this.rawBattleJson = battle;
+        this.fetchedAt = now;
+    }
+
+    public boolean hasBattleAt() {
+        return battleAt != null;
+    }
+
+    public static String externalKey(Map<String, Object> battle) {
+        String providedKey = text(battle, "id", "battle_id", "match_id", "external_match_key");
+        if (providedKey != null && !providedKey.isBlank()) {
+            return providedKey;
+        }
+        return String.join(":",
+                textOrEmpty(battle, "battle_at", "battleAt"),
+                textOrEmpty(battle, "p1_tekken_id", "p1TekkenId"),
+                textOrEmpty(battle, "p2_tekken_id", "p2TekkenId"),
+                textOrEmpty(battle, "p1_char", "p1Char", "p1_character", "p1Character"),
+                textOrEmpty(battle, "p2_char", "p2Char", "p2_character", "p2Character"),
+                textOrEmpty(battle, "winner"));
+    }
+
+    private static String textOrEmpty(Map<String, Object> source, String... keys) {
+        String value = text(source, keys);
+        return value == null ? "" : value;
+    }
+
+    private static String normalizeTekkenId(String tekkenId) {
+        return tekkenId == null ? null : tekkenId.replace("-", "");
+    }
+
+    private static String text(Map<String, Object> source, String... keys) {
+        Object value = first(source, keys);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private static Integer integer(Map<String, Object> source, String... keys) {
+        Object value = first(source, keys);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Integer.valueOf(text);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static Instant instant(Map<String, Object> source, String... keys) {
+        Object value = first(source, keys);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Instant.parse(String.valueOf(value));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static Object first(Map<String, Object> source, String... keys) {
+        for (String key : keys) {
+            Object value = source.get(key);
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     public Long getId() {
         return id;
     }

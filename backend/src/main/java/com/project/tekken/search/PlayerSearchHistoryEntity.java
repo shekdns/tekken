@@ -28,6 +28,12 @@ public class PlayerSearchHistoryEntity {
     protected PlayerSearchHistoryEntity() {
     }
 
+    public PlayerSearchHistoryEntity(String query, String tekkenId, Instant searchedAt) {
+        this.query = query;
+        this.tekkenId = tekkenId;
+        this.searchedAt = searchedAt;
+    }
+
     public Long getId() {
         return id;
     }

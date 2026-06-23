@@ -2,7 +2,47 @@
 
 T8LAB의 백엔드 프로젝트입니다. Spring Boot 기반으로 철권8 플레이어 조회, EWGF API 프록시, PostgreSQL 기반 캐싱, 향후 통계 기능을 담당합니다.
 
-현재 백엔드는 EWGF 프록시 API를 제공합니다. 다음 목표는 PostgreSQL을 사용하는 서비스 전용 `player`, `match`, `stats`, `cache` API를 추가하는 것입니다.
+현재 백엔드는 EWGF 프록시 API와 T8LAB 서비스 전용 플레이어 API를 제공합니다. 다음 목표는 매치 히스토리 응답을 표준 DTO로 정리하고 프론트엔드에서 바로 사용할 수 있게 만드는 것입니다.
+
+## 현재 진행 상황
+
+이 섹션은 백엔드 단계가 끝날 때마다 업데이트합니다.
+
+### 완료
+
+1. EWGF API key를 `EWGF_API_KEY` 환경변수에서 읽도록 구성했습니다.
+2. PostgreSQL 연결, JPA, Flyway 구성을 추가했습니다.
+3. 초기 DB 테이블을 추가했습니다.
+   - `players`
+   - `matches`
+   - `api_cache`
+   - `player_search_history`
+4. EWGF API 프록시를 유지했습니다.
+   - `GET /api/ewgf/battles/{tekkenId}`
+   - `GET /api/ewgf/profile/{tekkenId}`
+   - `POST /api/ewgf/profile`
+5. T8LAB 서비스 전용 플레이어 API를 추가했습니다.
+   - `GET /api/players/{tekkenId}`
+   - `GET /api/players/{tekkenId}/matches`
+6. 플레이어 검색 시 검색 이력을 저장합니다.
+7. EWGF profile/battles 응답을 `api_cache`에 저장합니다.
+8. EWGF profile 응답을 `PlayerProfileSummary`로 표준화했습니다.
+9. `main_character`가 `{ "Dragunov": "God of Destruction" }` 형태로 오는 경우 캐릭터와 랭크를 분리해서 매핑합니다.
+10. EWGF battles 응답을 `PlayerMatchSummary`로 표준화했습니다.
+11. match 응답에서 검색 대상 플레이어를 `my`, 상대를 `opponent`로 분리합니다.
+12. `winner`와 검색 대상 side를 기준으로 `WIN`/`LOSS`를 계산합니다.
+
+### 현재 단계
+
+- 플레이어 프로필 요약 API와 매치 히스토리 표준 응답은 1차 구현 완료 상태입니다.
+- 다음 단계는 저장된 match 데이터를 기반으로 기본 통계 API를 추가하는 것입니다.
+
+### 다음 작업
+
+1. 최근 경기 기반 승률과 최근 폼을 계산합니다.
+2. 캐릭터별 사용률과 승률을 계산합니다.
+3. match/player 관련 mapper 테스트를 추가합니다.
+4. `datasource.ewgf` 패키지로 외부 API 클라이언트 구조를 정리합니다.
 
 ## 1. 사전 준비
 
@@ -127,6 +167,8 @@ GET /api/health
 GET /api/ewgf/battles/{tekkenId}
 GET /api/ewgf/profile/{tekkenId}
 POST /api/ewgf/profile
+GET /api/players/{tekkenId}
+GET /api/players/{tekkenId}/matches
 ```
 
 `POST /api/ewgf/profile` 요청 본문:
@@ -142,8 +184,6 @@ POST /api/ewgf/profile
 예정 API:
 
 ```http
-GET /api/players/{tekkenId}
-GET /api/players/{tekkenId}/matches
 GET /api/players/{tekkenId}/summary
 GET /api/players/{tekkenId}/character-stats
 ```
@@ -193,10 +233,11 @@ com.project.tekken
 
 ## 10. 백엔드 구현 순서
 
-1. 기존 EWGF 프록시 API를 안정적으로 유지합니다.
-2. 초기 테이블에 대응하는 JPA Entity와 Repository를 추가합니다.
-3. `datasource.ewgf` 패키지를 만들고 EWGF 클라이언트 코드를 이동합니다.
-4. EWGF Profile API와 DB 캐시를 사용하는 `player` API를 추가합니다.
-5. EWGF Battles API와 DB 캐시를 사용하는 `match` API를 추가합니다.
+1. 기존 EWGF 프록시 API를 안정적으로 유지합니다. `완료`
+2. 초기 테이블에 대응하는 JPA Entity와 Repository를 추가합니다. `완료`
+3. EWGF Profile API와 DB 캐시를 사용하는 `player` API를 추가합니다. `완료`
+4. EWGF profile 응답을 T8LAB 표준 summary DTO로 변환합니다. `완료`
+5. EWGF Battles API와 DB 캐시를 사용하는 `match` API를 추가합니다. `완료`
 6. 기본 승률, 캐릭터별 사용률, 캐릭터별 승률을 계산하는 `stats` 서비스를 추가합니다.
-7. 프론트엔드 호출을 `/api/ewgf/*`에서 `/api/players/*`로 전환합니다.
+7. `datasource.ewgf` 패키지를 만들고 EWGF 클라이언트 코드를 이동합니다.
+8. 프론트엔드 호출을 `/api/ewgf/*`에서 `/api/players/*`로 전환합니다. `일부 완료`
