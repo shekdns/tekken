@@ -1,15 +1,16 @@
-package com.project.tekken.player;
+package com.project.tekken.player.mapper;
 
+import com.project.tekken.player.dto.PlayerProfileSummary;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-final class PlayerProfileMapper {
+public final class PlayerProfileMapper {
 
     private PlayerProfileMapper() {
     }
 
-    static PlayerProfileSummary toSummary(Map<String, Object> profile) {
+    public static PlayerProfileSummary toSummary(Map<String, Object> profile) {
         Map<String, Object> mainCharacter = object(
                 profile,
                 "main_character",
@@ -167,7 +168,7 @@ final class PlayerProfileMapper {
         return null;
     }
 
-    static String text(Map<String, Object> source, String... paths) {
+    public static String text(Map<String, Object> source, String... paths) {
         Object value = first(source, paths);
         if (value == null) {
             return null;
@@ -179,7 +180,7 @@ final class PlayerProfileMapper {
         return String.valueOf(value);
     }
 
-    static Integer integer(Map<String, Object> source, String... paths) {
+    public static Integer integer(Map<String, Object> source, String... paths) {
         Object value = first(source, paths);
         if (value instanceof Number number) {
             return number.intValue();
@@ -194,7 +195,7 @@ final class PlayerProfileMapper {
         return null;
     }
 
-    static Instant instant(Map<String, Object> source, String... paths) {
+    public static Instant instant(Map<String, Object> source, String... paths) {
         Object value = first(source, paths);
         if (value == null) {
             return null;
@@ -207,7 +208,7 @@ final class PlayerProfileMapper {
     }
 
     @SuppressWarnings("unchecked")
-    static Map<String, Object> object(Map<String, Object> source, String... paths) {
+    public static Map<String, Object> object(Map<String, Object> source, String... paths) {
         Object value = first(source, paths);
         return value instanceof Map<?, ?> ? (Map<String, Object>) value : null;
     }

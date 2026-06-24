@@ -1,4 +1,4 @@
-package com.project.tekken.player;
+package com.project.tekken.player.dto;
 
 public record PlayerMatchParticipant(
         int side,

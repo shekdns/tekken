@@ -1,4 +1,4 @@
-package com.project.tekken.player;
+package com.project.tekken.player.dto;
 
 import java.time.Instant;
 import java.util.Map;

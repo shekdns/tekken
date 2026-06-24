@@ -1,15 +1,16 @@
-package com.project.tekken.player;
+package com.project.tekken.player.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.tekken.cache.ApiCacheEntity;
 import com.project.tekken.cache.ApiCacheRepository;
-import com.project.tekken.external.EwgfApiClient;
+import com.project.tekken.datasource.ewgf.EwgfApiClient;
 import com.project.tekken.match.MatchEntity;
 import com.project.tekken.match.MatchRepository;
-import com.project.tekken.search.PlayerSearchHistoryEntity;
-import com.project.tekken.search.PlayerSearchHistoryRepository;
+import com.project.tekken.player.dto.PlayerMatchSummary;
+import com.project.tekken.player.exception.PlayerApiException;
+import com.project.tekken.player.mapper.PlayerMatchMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,100 +19,74 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class PlayerService {
+class PlayerMatchSyncService {
 
     private static final String SOURCE_EWGF = "ewgf";
     private static final String SOURCE_CACHE = "cache";
     private static final Duration CACHE_TTL = Duration.ofMinutes(30);
+    private static final Duration DB_SYNC_TTL = Duration.ofMinutes(10);
 
     private final EwgfApiClient ewgfApiClient;
     private final ObjectMapper objectMapper;
     private final ApiCacheRepository apiCacheRepository;
-    private final PlayerRepository playerRepository;
     private final MatchRepository matchRepository;
-    private final PlayerSearchHistoryRepository searchHistoryRepository;
+    private final PlayerMatchQueryService matchQueryService;
 
-    public PlayerService(
+    PlayerMatchSyncService(
             EwgfApiClient ewgfApiClient,
             ObjectMapper objectMapper,
             ApiCacheRepository apiCacheRepository,
-            PlayerRepository playerRepository,
             MatchRepository matchRepository,
-            PlayerSearchHistoryRepository searchHistoryRepository
+            PlayerMatchQueryService matchQueryService
     ) {
         this.ewgfApiClient = ewgfApiClient;
         this.objectMapper = objectMapper;
         this.apiCacheRepository = apiCacheRepository;
-        this.playerRepository = playerRepository;
         this.matchRepository = matchRepository;
-        this.searchHistoryRepository = searchHistoryRepository;
+        this.matchQueryService = matchQueryService;
     }
 
-    @Transactional
-    public PlayerProfileResponse getProfile(String tekkenId) {
-        Instant now = Instant.now();
-        String normalizedTekkenId = normalizeTekkenId(tekkenId);
-        searchHistoryRepository.save(new PlayerSearchHistoryEntity(tekkenId, normalizedTekkenId, now));
-
-        String cacheKey = cacheKey("profile", normalizedTekkenId);
-        ApiCacheEntity cached = freshCache(cacheKey, now);
-        if (cached != null) {
-            Map<String, Object> profile = profileData(cached.getResponseJson());
-            return new PlayerProfileResponse(
-                    normalizedTekkenId,
-                    SOURCE_CACHE,
-                    cached.getUpdatedAt(),
-                    PlayerProfileMapper.toSummary(profile),
-                    profile);
-        }
-
-        ResponseEntity<String> response = ewgfApiClient.getProfile(tekkenId);
-        Map<String, Object> body = parseJsonObject(response.getBody(), "/external/profile/" + tekkenId);
-        assertSuccess(response, "/external/profile/" + tekkenId);
-
-        Map<String, Object> profile = profileData(body);
-        PlayerEntity player = playerRepository.findByTekkenId(normalizedTekkenId)
-                .orElseGet(() -> new PlayerEntity(normalizedTekkenId, now));
-        player.updateFromProfile(profile, now);
-        playerRepository.save(player);
-        saveCache(cacheKey, body, now);
-
-        return new PlayerProfileResponse(
-                normalizedTekkenId,
-                SOURCE_EWGF,
-                now,
-                PlayerProfileMapper.toSummary(profile),
-                profile);
+    PlayerMatchData getMatchesData(String tekkenId) {
+        return getMatchesData(tekkenId, false);
     }
 
-    @Transactional
-    public PlayerMatchesResponse getMatches(String tekkenId) {
+    PlayerMatchData getMatchesData(String tekkenId, boolean refresh) {
         Instant now = Instant.now();
         String normalizedTekkenId = normalizeTekkenId(tekkenId);
 
         String cacheKey = cacheKey("matches", normalizedTekkenId);
-        ApiCacheEntity cached = freshCache(cacheKey, now);
+        ApiCacheEntity cached = refresh ? null : freshCache(cacheKey, now);
         if (cached != null) {
             List<Map<String, Object>> battles = battleData(cached.getResponseJson());
-            return new PlayerMatchesResponse(
+            return new PlayerMatchData(
                     normalizedTekkenId,
                     SOURCE_CACHE,
                     cached.getUpdatedAt(),
                     matchSummaries(battles, normalizedTekkenId));
         }
 
+        PlayerMatchData storedMatches = matchQueryService.findStoredMatches(normalizedTekkenId);
+        if (!refresh && storedMatches != null && storedMatches.isFresh(now, DB_SYNC_TTL)) {
+            return storedMatches;
+        }
+
+        String path = "/external/battles/" + tekkenId;
         ResponseEntity<String> response = ewgfApiClient.getBattles(tekkenId);
-        Map<String, Object> body = parseJsonObject(response.getBody(), "/external/battles/" + tekkenId);
-        assertSuccess(response, "/external/battles/" + tekkenId);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            if (storedMatches != null) {
+                return storedMatches;
+            }
+            assertSuccess(response, path);
+        }
+        Map<String, Object> body = parseJsonObject(response.getBody(), path);
 
         List<Map<String, Object>> battles = battleData(body);
         saveMatches(battles, now);
         saveCache(cacheKey, body, now);
 
-        return new PlayerMatchesResponse(
+        return new PlayerMatchData(
                 normalizedTekkenId,
                 SOURCE_EWGF,
                 now,
@@ -171,12 +146,6 @@ public class PlayerService {
                     response.getStatusCode(),
                     "EWGF API request failed: " + path);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> profileData(Map<String, Object> body) {
-        Object data = body.get("data");
-        return data instanceof Map<?, ?> ? (Map<String, Object>) data : body;
     }
 
     @SuppressWarnings("unchecked")

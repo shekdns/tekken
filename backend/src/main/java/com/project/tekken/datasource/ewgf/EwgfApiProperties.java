@@ -1,4 +1,4 @@
-package com.project.tekken.external;
+package com.project.tekken.datasource.ewgf;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

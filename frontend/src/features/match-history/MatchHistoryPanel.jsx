@@ -1,7 +1,7 @@
-import { Activity, AlertCircle, Loader2, Trophy } from 'lucide-react';
+import { Activity, AlertCircle, Loader2, RefreshCw, Trophy } from 'lucide-react';
 import { battleTypeLabel, displayValue, formatDate } from '../../shared/utils/formatters';
 
-export function MatchHistoryPanel({ matches, loading, error }) {
+export function MatchHistoryPanel({ matches, loading, error, total, hasMore, onRefresh, onLoadMore }) {
   return (
     <section className="matches-panel" aria-label="최근 경기 목록">
       <div className="section-header">
@@ -9,7 +9,12 @@ export function MatchHistoryPanel({ matches, loading, error }) {
           <p className="eyebrow">Match History</p>
           <h2>최근 경기</h2>
         </div>
-        <span>{loading ? '불러오는 중' : `${matches.length} games`}</span>
+        <div className="section-actions">
+          <span>{loading && !matches.length ? '불러오는 중' : `${matches.length}/${total || matches.length} games`}</span>
+          <button className="icon-action" type="button" onClick={onRefresh} disabled={loading} aria-label="최근 경기 갱신">
+            {loading ? <Loader2 aria-hidden="true" className="spin" /> : <RefreshCw aria-hidden="true" />}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -41,10 +46,17 @@ export function MatchHistoryPanel({ matches, loading, error }) {
 
       {!!matches.length && (
         <div className="match-list">
-          {matches.slice(0, 12).map((match) => (
+          {matches.map((match) => (
             <MatchRow key={match.externalMatchKey || `${match.battleAt}-${match.opponent?.tekkenId}`} match={match} />
           ))}
         </div>
+      )}
+
+      {hasMore && (
+        <button className="load-more-button" type="button" onClick={onLoadMore} disabled={loading}>
+          {loading ? <Loader2 aria-hidden="true" className="spin" /> : null}
+          <span>{loading ? '불러오는 중' : '더 보기'}</span>
+        </button>
       )}
     </section>
   );

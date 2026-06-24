@@ -1,15 +1,17 @@
-package com.project.tekken.player;
+package com.project.tekken.player.mapper;
 
 import com.project.tekken.match.MatchEntity;
+import com.project.tekken.player.dto.PlayerMatchParticipant;
+import com.project.tekken.player.dto.PlayerMatchSummary;
 import java.time.Instant;
 import java.util.Map;
 
-final class PlayerMatchMapper {
+public final class PlayerMatchMapper {
 
     private PlayerMatchMapper() {
     }
 
-    static PlayerMatchSummary toSummary(Map<String, Object> battle, String tekkenId) {
+    public static PlayerMatchSummary toSummary(Map<String, Object> battle, String tekkenId) {
         String normalizedTekkenId = normalizeTekkenId(tekkenId);
         PlayerMatchParticipant p1 = participant(battle, 1);
         PlayerMatchParticipant p2 = participant(battle, 2);
@@ -29,6 +31,43 @@ final class PlayerMatchMapper {
                 my,
                 opponent,
                 battle);
+    }
+
+    public static PlayerMatchSummary toSummary(MatchEntity match, String tekkenId) {
+        String normalizedTekkenId = normalizeTekkenId(tekkenId);
+        PlayerMatchParticipant p1 = new PlayerMatchParticipant(
+                1,
+                normalizeTekkenId(match.getP1TekkenId()),
+                match.getP1Name(),
+                match.getP1Char(),
+                match.getP1Region(),
+                match.getP1DanRank(),
+                match.getP1TekkenPower(),
+                match.getP1RoundsWon());
+        PlayerMatchParticipant p2 = new PlayerMatchParticipant(
+                2,
+                normalizeTekkenId(match.getP2TekkenId()),
+                match.getP2Name(),
+                match.getP2Char(),
+                match.getP2Region(),
+                match.getP2DanRank(),
+                match.getP2TekkenPower(),
+                match.getP2RoundsWon());
+        PlayerMatchParticipant my = normalizedTekkenId.equals(normalizeTekkenId(p1.tekkenId())) ? p1 : p2;
+        PlayerMatchParticipant opponent = my.side() == 1 ? p2 : p1;
+
+        return new PlayerMatchSummary(
+                match.getExternalMatchKey(),
+                match.getBattleAt(),
+                match.getBattleType(),
+                result(my.side(), match.getWinner()),
+                match.getWinner(),
+                match.getStageId(),
+                match.getGameVersion(),
+                roundScore(my.roundsWon(), opponent.roundsWon()),
+                my,
+                opponent,
+                match.getRawBattleJson());
     }
 
     private static PlayerMatchParticipant participant(Map<String, Object> battle, int side) {

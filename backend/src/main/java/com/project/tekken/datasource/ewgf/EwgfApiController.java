@@ -1,4 +1,4 @@
-package com.project.tekken.external;
+package com.project.tekken.datasource.ewgf;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

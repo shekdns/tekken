@@ -34,18 +34,30 @@ T8LAB의 프론트엔드 프로젝트입니다. React + Vite 기반으로 철권
 15. `main.jsx`에 모여 있던 코드를 `app`, `features`, `shared` 구조로 분리했습니다.
 16. 최근 100게임 기준 통계 패널을 추가했습니다.
 17. 전적, 승률, 최근 10게임, 최다 사용 캐릭터, 캐릭터별 사용률과 승률을 표시합니다.
+18. `/players/{tekkenId}` 상세 URL 라우팅을 추가했습니다.
+19. 검색 성공 시 상세 URL로 이동하고, 상세 URL 직접 접근 시 데이터를 자동 조회합니다.
+20. 로고를 누르면 홈(`/`) 상태로 돌아가도록 정리했습니다.
+21. `GET /api/players/{tekkenId}/stats` backend 통계 API를 우선 사용하도록 변경했습니다.
+22. stats API 실패 시 기존 matches 기반 프론트 계산으로 fallback합니다.
+23. battle type별 승률과 상대 캐릭터별 전적을 통계 패널에 표시합니다.
+24. 최근 경기 목록에 backend `offset/limit` 기반 `더 보기` 버튼을 연결했습니다.
+25. 최근 경기 API 호출부에서 `battleType`, `character`, `opponentCharacter`, `days` 필터 파라미터를 보낼 수 있게 준비했습니다.
+26. 프로필 아래에 공통 전적 필터 UI를 추가했습니다.
+27. 필터 적용 시 stats API와 matches API를 같은 기준으로 다시 조회합니다.
+28. 필터 변경 후 최근 경기 목록은 `offset=0`부터 다시 조회하고, 더 보기는 현재 필터 기준을 유지합니다.
+29. 최근 경기 패널에 갱신 버튼을 추가하고 `refresh=true`로 matches API를 호출하도록 연결했습니다.
 
 ### 현재 단계
 
-- 플레이어 검색, 프로필 요약, 최근 경기 목록, 최근 경기 기반 통계 표시는 완료된 상태입니다.
+- 플레이어 검색, 프로필 요약, 공통 전적 필터, 최근 경기 더보기/갱신 목록, backend 통계 API 연동, 상세 통계 표시, 상세 URL 라우팅은 완료된 상태입니다.
 - 아직 화면 구조는 초기 기능 검증용이며, 디자인은 추후 TKNOW.GG/EWGF.GG를 참고해 고도화합니다.
 
 ### 다음 작업
 
-1. `/players/{tekkenId}` 상세 페이지 라우팅 구조로 분리합니다.
-2. 검색 후 URL이 바뀌고 상세 화면으로 이동하는 흐름을 만듭니다.
-3. 통계 계산 로직을 추후 backend API로 이전할 수 있도록 응답 계약을 정합니다.
-4. 전적 사이트다운 상세 화면 디자인을 고도화합니다.
+1. 전적 사이트다운 상세 화면 디자인을 고도화합니다.
+2. 필터 UI를 캐릭터 선택 목록, 플랫폼/지역 등으로 확장합니다.
+3. 더 보기/필터 상태에 대한 프론트 테스트 전략을 정합니다.
+4. 리더보드와 검색 이력 UI를 설계합니다.
 
 ## 1. 사전 준비
 
@@ -116,6 +128,7 @@ POST /api/ewgf/profile
 ```http
 GET /api/players/{tekkenId}
 GET /api/players/{tekkenId}/matches
+GET /api/players/{tekkenId}/stats
 GET /api/players/{tekkenId}/summary
 GET /api/players/{tekkenId}/character-stats
 ```
@@ -162,7 +175,8 @@ frontend/src
 5. `PlayerPage` 라우트를 추가합니다.
 6. `/api/players/{tekkenId}/matches` 응답으로 최근 경기 목록을 렌더링합니다. `완료`
 7. 캐릭터 사용률과 승률 패널을 추가합니다. `완료`
-8. `/players/{tekkenId}` 라우트를 추가합니다. `다음 작업`
+8. `/players/{tekkenId}` 라우트를 추가합니다. `완료`
+9. 상세 화면 디자인을 고도화합니다. `다음 작업`
 
 ## 8. OS별 실행 명령
 

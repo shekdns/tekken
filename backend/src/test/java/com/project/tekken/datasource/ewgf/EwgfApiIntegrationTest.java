@@ -1,4 +1,4 @@
-package com.project.tekken.external;
+package com.project.tekken.datasource.ewgf;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

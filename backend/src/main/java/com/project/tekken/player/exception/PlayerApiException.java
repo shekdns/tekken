@@ -1,4 +1,4 @@
-package com.project.tekken.player;
+package com.project.tekken.player.exception;
 
 import org.springframework.http.HttpStatusCode;
 
