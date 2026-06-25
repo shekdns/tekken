@@ -1,8 +1,10 @@
 import { BarChart3 } from 'lucide-react';
+import { CharacterPortrait } from '../../shared/components/CharacterPortrait';
+import { findCharacterOption } from '../../shared/utils/characters';
 import { calculateMatchStats } from '../../shared/utils/matches';
-import { battleTypeLabel } from '../../shared/utils/formatters';
+import { localizedBattleTypeLabel } from '../../shared/utils/gameMetadata';
 
-export function PlayerStatsPanel({ matches, stats }) {
+export function PlayerStatsPanel({ matches, stats, characterOptions = [], locale = 'ko', t }) {
   const nextStats = stats || (matches.length ? calculateMatchStats(matches) : null);
 
   if (!nextStats) {
@@ -10,33 +12,44 @@ export function PlayerStatsPanel({ matches, stats }) {
   }
 
   return (
-    <section className="analysis-panel" aria-label="최근 경기 통계">
+    <section className="analysis-panel" aria-label={t('stats.ariaLabel')}>
       <div className="section-header">
         <div>
-          <p className="eyebrow">Recent Analysis</p>
-          <h2>최근 100게임 요약</h2>
+          <p className="eyebrow">{t('stats.eyebrow')}</p>
+          <h2>{t('stats.title')}</h2>
         </div>
-        <span>{nextStats.winRate}% win rate</span>
+        <span>{nextStats.winRate}% {t('stats.winRateSuffix')}</span>
       </div>
 
       <div className="analysis-grid">
-        <AnalysisItem label="전적" value={`${nextStats.wins}승 ${nextStats.losses}패`} />
-        <AnalysisItem label="승률" value={`${nextStats.winRate}%`} />
-        <AnalysisItem label="최근 10게임" value={nextStats.recent10Record} />
-        <AnalysisItem label="최다 사용 캐릭터" value={nextStats.mostPlayedCharacter} />
+        <AnalysisItem label={t('stats.record')} value={formatRecord(nextStats.wins, nextStats.losses, t)} />
+        <AnalysisItem label={t('stats.winRate')} value={`${nextStats.winRate}%`} tone="primary" />
+        <AnalysisItem label={t('stats.recent10')} value={formatRecent10(nextStats, t)} />
+        <AnalysisItem label={t('stats.mostPlayedCharacter')} value={nextStats.mostPlayedCharacter} />
+        <AnalysisItem label={t('stats.currentStreak')} value={formatCurrentStreak(nextStats.streakStats, t)} tone={nextStats.streakStats?.currentType === 'WIN' ? 'positive' : nextStats.streakStats?.currentType === 'LOSS' ? 'negative' : ''} />
+        <AnalysisItem label={t('stats.longestWinStreak')} value={formatStreakCount(nextStats.streakStats?.longestWin, t('stats.winStreak'))} />
+        <AnalysisItem label={t('stats.longestLossStreak')} value={formatStreakCount(nextStats.streakStats?.longestLoss, t('stats.lossStreak'))} />
+        <AnalysisItem label={t('stats.activeDays')} value={formatActiveDays(nextStats.activityStats?.activeDays, t)} />
       </div>
 
       <div className="character-usage">
         <div className="mini-heading">
           <BarChart3 aria-hidden="true" />
-          <strong>캐릭터 사용률</strong>
+          <strong>{t('stats.characterUsage')}</strong>
         </div>
         <div className="character-list">
           {nextStats.characterStats.map((character) => (
             <div className="character-row" key={character.character}>
-              <div>
-                <strong>{character.character}</strong>
-                <span>{character.games} games · {character.winRate}%</span>
+              <div className="character-stat-label">
+                <CharacterPortrait
+                  character={findCharacterOption(characterOptions, character.character)}
+                  label={character.character}
+                  size="sm"
+                />
+                <div>
+                  <strong>{character.character}</strong>
+                  <span>{character.games} {t('stats.games')} · {character.winRate}%</span>
+                </div>
               </div>
               <div className="usage-bar" aria-hidden="true">
                 <span style={{ width: `${Math.min(100, Math.round((character.games / nextStats.total) * 100))}%` }} />
@@ -48,31 +61,34 @@ export function PlayerStatsPanel({ matches, stats }) {
 
       <div className="detail-stats-grid">
         <StatsTable
-          title="전투 타입별 승률"
+          title={t('stats.battleTypeStats')}
           rows={nextStats.battleTypeStats || []}
           labelKey="battleType"
-          labelFormatter={battleTypeLabel}
+          labelFormatter={(value) => localizedBattleTypeLabel(value, locale)}
+          t={t}
         />
         <StatsTable
-          title="상대 캐릭터별 전적"
+          title={t('stats.opponentCharacterStats')}
           rows={nextStats.opponentCharacterStats || []}
           labelKey="character"
+          characterOptions={characterOptions}
+          t={t}
         />
       </div>
     </section>
   );
 }
 
-function AnalysisItem({ label, value }) {
+function AnalysisItem({ label, value, tone }) {
   return (
-    <div className="analysis-item">
+    <div className={`analysis-item ${tone || ''}`}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
   );
 }
 
-function StatsTable({ title, rows, labelKey, labelFormatter = (value) => value }) {
+function StatsTable({ title, rows, labelKey, labelFormatter = (value) => value, characterOptions = [], t }) {
   if (!rows.length) {
     return null;
   }
@@ -86,13 +102,60 @@ function StatsTable({ title, rows, labelKey, labelFormatter = (value) => value }
       <div className="detail-stats-list">
         {rows.slice(0, 6).map((row) => (
           <div className="detail-stat-row" key={row[labelKey]}>
-            <strong>{labelFormatter(row[labelKey])}</strong>
-            <span>{row.games}게임</span>
-            <span>{row.wins}승 {row.losses}패</span>
+            <div className="detail-stat-label">
+              {labelKey === 'character' && (
+                <CharacterPortrait
+                  character={findCharacterOption(characterOptions, row[labelKey])}
+                  label={row[labelKey]}
+                  size="xs"
+                />
+              )}
+              <strong>{labelFormatter(row[labelKey])}</strong>
+            </div>
+            <span>{row.games}{t('stats.games')}</span>
+            <span>{formatRecord(row.wins, row.losses, t)}</span>
             <em>{row.winRate}%</em>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+function formatRecord(wins, losses, t) {
+  return `${wins}${t('stats.wins')} ${losses}${t('stats.losses')}`;
+}
+
+function formatRecent10(stats, t) {
+  if (stats.recent10Wins !== undefined && stats.recent10Losses !== undefined) {
+    return formatRecord(stats.recent10Wins, stats.recent10Losses, t);
+  }
+  return stats.recent10Record;
+}
+
+function formatCurrentStreak(streakStats, t) {
+  if (!streakStats || !streakStats.currentCount || streakStats.currentType === '-') {
+    return t('stats.noStreak');
+  }
+  if (streakStats.currentType === 'WIN') {
+    return formatStreakCount(streakStats.currentCount, t('stats.winStreak'));
+  }
+  if (streakStats.currentType === 'LOSS') {
+    return formatStreakCount(streakStats.currentCount, t('stats.lossStreak'));
+  }
+  return t('stats.noStreak');
+}
+
+function formatStreakCount(value, label) {
+  if (!value) {
+    return '-';
+  }
+  return `${value} ${label}`;
+}
+
+function formatActiveDays(value, t) {
+  if (!value) {
+    return '-';
+  }
+  return `${value}${t('stats.daysUnit')}`;
 }

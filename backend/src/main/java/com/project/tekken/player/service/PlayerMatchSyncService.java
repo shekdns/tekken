@@ -130,13 +130,13 @@ class PlayerMatchSyncService {
 
     private Map<String, Object> parseJsonObject(String body, String path) {
         if (body == null || body.isBlank()) {
-            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF API returned an empty response: " + path);
+            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF_EMPTY_RESPONSE", "EWGF API returned an empty response: " + path);
         }
         try {
             return objectMapper.readValue(body, new TypeReference<>() {
             });
         } catch (JsonProcessingException exception) {
-            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF API returned invalid JSON: " + path);
+            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF_INVALID_JSON", "EWGF API returned invalid JSON: " + path);
         }
     }
 
@@ -144,6 +144,7 @@ class PlayerMatchSyncService {
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new PlayerApiException(
                     response.getStatusCode(),
+                    "EWGF_REQUEST_FAILED",
                     "EWGF API request failed: " + path);
         }
     }

@@ -24,15 +24,28 @@ export function formatDate(value) {
   }).format(date);
 }
 
-export function battleTypeLabel(value) {
-  if (value === 'RANKED_BATTLE') {
-    return 'Ranked';
+export function formatDateByLocale(value, locale = 'ko') {
+  if (!value) {
+    return '-';
   }
-  if (value === 'QUICK_BATTLE') {
-    return 'Quick';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
   }
-  if (value === 'PLAYER_BATTLE') {
-    return 'Player';
+
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+function toIntlLocale(locale) {
+  if (locale === 'en') {
+    return 'en-US';
   }
-  return value || '-';
+  if (locale === 'ja') {
+    return 'ja-JP';
+  }
+  return 'ko-KR';
 }

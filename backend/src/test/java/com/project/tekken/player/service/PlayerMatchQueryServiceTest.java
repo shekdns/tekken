@@ -118,6 +118,53 @@ class PlayerMatchQueryServiceTest {
         assertThat(response).isNull();
     }
 
+    @Test
+    void mapsStoredMatchesToStatsData() {
+        Instant fetchedAt = Instant.parse("2026-06-24T03:00:00Z");
+        MatchEntity first = storedMatch("stats-1", fetchedAt, 1, "Dragunov", "Bryan");
+        MatchEntity second = storedMatch("stats-2", fetchedAt.minusSeconds(60), 2, "Dragunov", "Bryan");
+        PlayerMatchQueryService queryService = new PlayerMatchQueryService(matchRepository);
+        when(matchRepository.findLatestFetchedAtByTekkenId(TEKKEN_ID)).thenReturn(Optional.of(fetchedAt));
+        when(matchRepository.findPlayerMatches(
+                eq(TEKKEN_ID),
+                eq("RANKED_BATTLE"),
+                eq("DRAGUNOV"),
+                eq("BRYAN"),
+                eq(Instant.parse("2026-06-01T00:00:00Z")),
+                org.mockito.ArgumentMatchers.any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(first, second), new OffsetPageRequest(100, 0), 2));
+
+        PlayerMatchData data = queryService.findStoredStatsData(
+                TEKKEN_ID,
+                100,
+                "RANKED_BATTLE",
+                "DRAGUNOV",
+                "BRYAN",
+                Instant.parse("2026-06-01T00:00:00Z"));
+
+        assertThat(data.source()).isEqualTo("database");
+        assertThat(data.fetchedAt()).isEqualTo(fetchedAt);
+        assertThat(data.matches()).hasSize(2);
+        assertThat(data.matches().get(0).externalMatchKey()).isEqualTo("stats-1");
+        assertThat(data.matches().get(1).result()).isEqualTo("LOSS");
+    }
+
+    @Test
+    void returnsNullStatsDataWhenDatabaseHasNoPlayerMatches() {
+        PlayerMatchQueryService queryService = new PlayerMatchQueryService(matchRepository);
+        when(matchRepository.findLatestFetchedAtByTekkenId(TEKKEN_ID)).thenReturn(Optional.empty());
+
+        PlayerMatchData data = queryService.findStoredStatsData(
+                TEKKEN_ID,
+                100,
+                null,
+                null,
+                null,
+                null);
+
+        assertThat(data).isNull();
+    }
+
     private static MatchEntity storedMatch(
             String id,
             Instant battleAt,

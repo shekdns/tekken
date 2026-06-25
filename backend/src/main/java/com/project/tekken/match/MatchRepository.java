@@ -1,43 +1,67 @@
 package com.project.tekken.match;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface MatchRepository extends JpaRepository<MatchEntity, Long> {
+public interface MatchRepository extends JpaRepository<MatchEntity, Long>, JpaSpecificationExecutor<MatchEntity> {
 
     Optional<MatchEntity> findByExternalMatchKey(String externalMatchKey);
 
     List<MatchEntity> findByP1TekkenIdOrP2TekkenIdOrderByBattleAtDesc(String p1TekkenId, String p2TekkenId);
 
-    @Query("""
-            select match
-            from MatchEntity match
-            where (match.p1TekkenId = :tekkenId or match.p2TekkenId = :tekkenId)
-              and (:battleType is null or upper(match.battleType) = :battleType)
-              and (:character is null or (
-                    (match.p1TekkenId = :tekkenId and upper(match.p1Char) = :character)
-                    or (match.p2TekkenId = :tekkenId and upper(match.p2Char) = :character)
-              ))
-              and (:opponentCharacter is null or (
-                    (match.p1TekkenId = :tekkenId and upper(match.p2Char) = :opponentCharacter)
-                    or (match.p2TekkenId = :tekkenId and upper(match.p1Char) = :opponentCharacter)
-              ))
-              and (:fromBattleAt is null or match.battleAt >= :fromBattleAt)
-            order by match.battleAt desc
-            """)
-    Page<MatchEntity> findPlayerMatches(
-            @Param("tekkenId") String tekkenId,
-            @Param("battleType") String battleType,
-            @Param("character") String character,
-            @Param("opponentCharacter") String opponentCharacter,
-            @Param("fromBattleAt") Instant fromBattleAt,
-            Pageable pageable);
+    default Page<MatchEntity> findPlayerMatches(
+            String tekkenId,
+            String battleType,
+            String character,
+            String opponentCharacter,
+            Instant fromBattleAt,
+            Pageable pageable
+    ) {
+        return findAll((root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.or(
+                    criteriaBuilder.equal(root.get("p1TekkenId"), tekkenId),
+                    criteriaBuilder.equal(root.get("p2TekkenId"), tekkenId)));
+
+            if (battleType != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("battleType")), battleType));
+            }
+            if (character != null) {
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.and(
+                                criteriaBuilder.equal(root.get("p1TekkenId"), tekkenId),
+                                criteriaBuilder.equal(criteriaBuilder.upper(root.get("p1Char")), character)),
+                        criteriaBuilder.and(
+                                criteriaBuilder.equal(root.get("p2TekkenId"), tekkenId),
+                                criteriaBuilder.equal(criteriaBuilder.upper(root.get("p2Char")), character))));
+            }
+            if (opponentCharacter != null) {
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.and(
+                                criteriaBuilder.equal(root.get("p1TekkenId"), tekkenId),
+                                criteriaBuilder.equal(criteriaBuilder.upper(root.get("p2Char")), opponentCharacter)),
+                        criteriaBuilder.and(
+                                criteriaBuilder.equal(root.get("p2TekkenId"), tekkenId),
+                                criteriaBuilder.equal(criteriaBuilder.upper(root.get("p1Char")), opponentCharacter))));
+            }
+            if (fromBattleAt != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("battleAt"), fromBattleAt));
+            }
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                query.orderBy(criteriaBuilder.desc(root.get("battleAt")));
+            }
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        }, pageable);
+    }
 
     @Query("""
             select max(match.fetchedAt)

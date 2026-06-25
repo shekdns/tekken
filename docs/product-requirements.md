@@ -43,6 +43,10 @@ Excluded from MVP:
 - `/player/:tekkenId`: Player detail page.
 - `/about`: Data source and service notes.
 
+Post-MVP discovery pages:
+
+- `/leaderboards`: T8LAB internal leaderboard first, external leaderboard sources later.
+
 ## Core Backend APIs
 
 - `GET /api/players/{tekkenId}`
@@ -50,8 +54,20 @@ Excluded from MVP:
 - `GET /api/players/{tekkenId}/summary`
 - `GET /api/players/{tekkenId}/character-stats`
 
+Planned discovery APIs:
+
+- `GET /api/search/recent`
+- `GET /api/search/popular`
+- `GET /api/leaderboards/players`
+
 ## Data Policy
 
 External provider response shapes must not leak directly into frontend contracts. The backend should map EWGF and future Wavu responses into service-owned DTOs.
 
 API keys must be provided through environment variables and must never be committed.
+
+## Asset Policy
+
+Character portraits and visual assets must follow `docs/asset-policy.md`.
+
+The initial production UI should keep text or abstract fallback portraits until official or licensed image usage is confirmed. Official Tekken character artwork, fan wiki images, community images, and AI-generated likenesses should not be committed without source and usage review.

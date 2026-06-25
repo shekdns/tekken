@@ -18,6 +18,8 @@ public record PlayerStatsResponse(
         List<PlayerCharacterStats> characterStats,
         PlayerStatsFilters filters,
         List<PlayerBattleTypeStats> battleTypeStats,
-        List<PlayerOpponentCharacterStats> opponentCharacterStats
+        List<PlayerOpponentCharacterStats> opponentCharacterStats,
+        PlayerStreakStats streakStats,
+        PlayerActivityStats activityStats
 ) {
 }

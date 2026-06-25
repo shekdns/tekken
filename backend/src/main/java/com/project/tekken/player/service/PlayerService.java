@@ -65,12 +65,17 @@ public class PlayerService {
 
     @Transactional
     public PlayerProfileResponse getProfile(String tekkenId) {
+        return getProfile(tekkenId, false);
+    }
+
+    @Transactional
+    public PlayerProfileResponse getProfile(String tekkenId, boolean refresh) {
         Instant now = Instant.now();
         String normalizedTekkenId = normalizeTekkenId(tekkenId);
         searchHistoryRepository.save(new PlayerSearchHistoryEntity(tekkenId, normalizedTekkenId, now));
 
         String cacheKey = cacheKey("profile", normalizedTekkenId);
-        ApiCacheEntity cached = freshCache(cacheKey, now);
+        ApiCacheEntity cached = refresh ? null : freshCache(cacheKey, now);
         if (cached != null) {
             Map<String, Object> profile = profileData(cached.getResponseJson());
             return new PlayerProfileResponse(
@@ -156,6 +161,30 @@ public class PlayerService {
             Integer days
     ) {
         PlayerMatchData matches = matchSyncService.getMatchesData(tekkenId);
+        int normalizedLimit = normalizeStatsLimit(limit);
+        String normalizedBattleType = normalizeBattleType(battleType);
+        String normalizedCharacter = normalizeTextFilter(character);
+        String normalizedOpponentCharacter = normalizeTextFilter(opponentCharacter);
+        Integer normalizedDays = normalizeDays(days);
+        PlayerMatchData storedMatches = matchQueryService.findStoredStatsData(
+                matches.tekkenId(),
+                normalizedLimit,
+                normalizedBattleType,
+                normalizedCharacter,
+                normalizedOpponentCharacter,
+                fromBattleAt(normalizedDays));
+        if (storedMatches != null) {
+            return PlayerStatsCalculator.fromMatches(
+                    storedMatches.tekkenId(),
+                    storedMatches.source(),
+                    storedMatches.fetchedAt(),
+                    storedMatches.matches(),
+                    normalizedLimit,
+                    normalizedBattleType,
+                    normalizedCharacter,
+                    normalizedOpponentCharacter,
+                    normalizedDays);
+        }
         return PlayerStatsCalculator.fromMatches(
                 matches.tekkenId(),
                 matches.source(),
@@ -239,6 +268,13 @@ public class PlayerService {
         return Math.min(limit, 50);
     }
 
+    private int normalizeStatsLimit(int limit) {
+        if (limit <= 0) {
+            return 100;
+        }
+        return Math.min(limit, 500);
+    }
+
     private String normalizeBattleType(String battleType) {
         if (battleType == null || battleType.isBlank() || "ALL".equalsIgnoreCase(battleType)) {
             return null;
@@ -279,13 +315,13 @@ public class PlayerService {
 
     private Map<String, Object> parseJsonObject(String body, String path) {
         if (body == null || body.isBlank()) {
-            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF API returned an empty response: " + path);
+            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF_EMPTY_RESPONSE", "EWGF API returned an empty response: " + path);
         }
         try {
             return objectMapper.readValue(body, new TypeReference<>() {
             });
         } catch (JsonProcessingException exception) {
-            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF API returned invalid JSON: " + path);
+            throw new PlayerApiException(HttpStatus.BAD_GATEWAY, "EWGF_INVALID_JSON", "EWGF API returned invalid JSON: " + path);
         }
     }
 
@@ -293,6 +329,7 @@ public class PlayerService {
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new PlayerApiException(
                     response.getStatusCode(),
+                    "EWGF_REQUEST_FAILED",
                     "EWGF API request failed: " + path);
         }
     }

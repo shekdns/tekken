@@ -86,4 +86,38 @@ class PlayerMatchQueryService {
                         .map(match -> PlayerMatchMapper.toSummary(match, normalizedTekkenId))
                         .toList());
     }
+
+    PlayerMatchData findStoredStatsData(
+            String normalizedTekkenId,
+            int limit,
+            String battleType,
+            String character,
+            String opponentCharacter,
+            Instant fromBattleAt
+    ) {
+        Optional<Instant> latestFetchedAt = matchRepository.findLatestFetchedAtByTekkenId(normalizedTekkenId);
+        Instant fetchedAt = latestFetchedAt == null ? null : latestFetchedAt.orElse(null);
+        if (fetchedAt == null) {
+            return null;
+        }
+
+        Page<MatchEntity> page = matchRepository.findPlayerMatches(
+                normalizedTekkenId,
+                battleType,
+                character,
+                opponentCharacter,
+                fromBattleAt,
+                new OffsetPageRequest(limit, 0));
+        if (page.isEmpty()) {
+            return null;
+        }
+
+        return new PlayerMatchData(
+                normalizedTekkenId,
+                SOURCE_DATABASE,
+                fetchedAt,
+                page.getContent().stream()
+                        .map(match -> PlayerMatchMapper.toSummary(match, normalizedTekkenId))
+                        .toList());
+    }
 }

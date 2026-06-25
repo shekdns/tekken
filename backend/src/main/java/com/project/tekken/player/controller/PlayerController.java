@@ -28,8 +28,11 @@ public class PlayerController {
     }
 
     @GetMapping("/{tekkenId}")
-    public PlayerProfileResponse getProfile(@PathVariable @NotBlank String tekkenId) {
-        return playerService.getProfile(tekkenId);
+    public PlayerProfileResponse getProfile(
+            @PathVariable @NotBlank String tekkenId,
+            @RequestParam(defaultValue = "false") boolean refresh
+    ) {
+        return playerService.getProfile(tekkenId, refresh);
     }
 
     @GetMapping("/{tekkenId}/matches")
@@ -63,6 +66,7 @@ public class PlayerController {
         return ResponseEntity
                 .status(exception.getStatusCode())
                 .body(new PlayerApiErrorResponse(
+                        exception.getCode(),
                         exception.getMessage(),
                         exception.getStatusCode().value(),
                         "/api/players"));

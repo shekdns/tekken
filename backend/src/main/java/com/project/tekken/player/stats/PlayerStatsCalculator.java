@@ -1,12 +1,16 @@
 package com.project.tekken.player.stats;
 
 import com.project.tekken.player.dto.PlayerBattleTypeStats;
+import com.project.tekken.player.dto.PlayerActivityStats;
 import com.project.tekken.player.dto.PlayerCharacterStats;
 import com.project.tekken.player.dto.PlayerMatchSummary;
 import com.project.tekken.player.dto.PlayerOpponentCharacterStats;
+import com.project.tekken.player.dto.PlayerStreakStats;
 import com.project.tekken.player.dto.PlayerStatsFilters;
 import com.project.tekken.player.dto.PlayerStatsResponse;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -71,7 +75,71 @@ public final class PlayerStatsCalculator {
                         normalizedOpponentCharacter,
                         normalizedDays),
                 battleTypeStats(filteredMatches),
-                opponentCharacterStats(filteredMatches));
+                opponentCharacterStats(filteredMatches),
+                streakStats(filteredMatches),
+                activityStats(filteredMatches));
+    }
+
+    private static PlayerStreakStats streakStats(List<PlayerMatchSummary> matches) {
+        String currentType = null;
+        int currentCount = 0;
+        boolean currentStreakOpen = true;
+        int longestWin = 0;
+        int longestLoss = 0;
+        int currentWin = 0;
+        int currentLoss = 0;
+
+        for (PlayerMatchSummary match : matches) {
+            String result = match.result();
+            if (!"WIN".equals(result) && !"LOSS".equals(result)) {
+                currentStreakOpen = false;
+                currentWin = 0;
+                currentLoss = 0;
+                continue;
+            }
+
+            if (currentStreakOpen && currentType == null) {
+                currentType = result;
+                currentCount = 1;
+            } else if (currentStreakOpen && currentType.equals(result)) {
+                currentCount++;
+            } else {
+                currentStreakOpen = false;
+            }
+
+            if ("WIN".equals(result)) {
+                currentWin++;
+                currentLoss = 0;
+                longestWin = Math.max(longestWin, currentWin);
+            } else {
+                currentLoss++;
+                currentWin = 0;
+                longestLoss = Math.max(longestLoss, currentLoss);
+            }
+        }
+
+        return new PlayerStreakStats(currentType == null ? "-" : currentType, currentCount, longestWin, longestLoss);
+    }
+
+    private static PlayerActivityStats activityStats(List<PlayerMatchSummary> matches) {
+        Instant firstBattleAt = matches.stream()
+                .map(PlayerMatchSummary::battleAt)
+                .filter(value -> value != null)
+                .min(Instant::compareTo)
+                .orElse(null);
+        Instant latestBattleAt = matches.stream()
+                .map(PlayerMatchSummary::battleAt)
+                .filter(value -> value != null)
+                .max(Instant::compareTo)
+                .orElse(null);
+        int activeDays = (int) matches.stream()
+                .map(PlayerMatchSummary::battleAt)
+                .filter(value -> value != null)
+                .map(value -> LocalDate.ofInstant(value, ZoneOffset.UTC))
+                .distinct()
+                .count();
+
+        return new PlayerActivityStats(firstBattleAt, latestBattleAt, activeDays);
     }
 
     private static List<PlayerCharacterStats> characterStats(List<PlayerMatchSummary> matches) {

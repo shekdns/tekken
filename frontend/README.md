@@ -46,18 +46,59 @@ T8LAB의 프론트엔드 프로젝트입니다. React + Vite 기반으로 철권
 27. 필터 적용 시 stats API와 matches API를 같은 기준으로 다시 조회합니다.
 28. 필터 변경 후 최근 경기 목록은 `offset=0`부터 다시 조회하고, 더 보기는 현재 필터 기준을 유지합니다.
 29. 최근 경기 패널에 갱신 버튼을 추가하고 `refresh=true`로 matches API를 호출하도록 연결했습니다.
+30. `GET /api/characters/options`를 호출해 캐릭터 필터를 선택형으로 표시합니다.
+31. 갱신 버튼이 프로필과 최근 경기/통계를 함께 새로 가져오도록 전체 갱신 흐름으로 변경됐습니다.
+32. 캐릭터 선택지는 한글명과 영문명을 함께 표시합니다.
+33. 캐릭터 선택지는 `localizedNames`와 현재 locale을 기준으로 표시합니다.
+34. 캐릭터 초상화는 `/assets/characters/{assetKey}.webp` 규칙을 사용하고, 이미지가 없으면 텍스트 fallback을 표시합니다.
+35. 플레이어 상세 화면을 프로필/필터 사이드바와 통계/최근 경기 본문으로 나누는 1차 대시보드 레이아웃으로 정리했습니다.
+36. 전체 갱신 버튼을 최근 경기 패널에서 프로필 카드 상단의 `전적 갱신` 버튼으로 이동했습니다.
+37. 랭크와 전투 타입 표시명을 한국어(`ko`), 영어(`en`), 일본어(`ja`) locale 메타데이터 기반으로 표시하도록 분리했습니다.
+38. 주요 UI 문구를 한국어(`ko`), 영어(`en`), 일본어(`ja`) 리소스로 분리하고 상단 언어 선택 UI를 추가했습니다.
+39. 캐릭터 이미지 자산 정책을 문서화하고, 권리 확인 전에는 텍스트/추상 fallback을 유지하기로 정리했습니다.
+40. 캐릭터 이름/assetKey 기반 색상과 패턴을 사용하는 T8LAB 전용 초상화 placeholder UI를 추가했습니다.
+41. 프로필 주캐릭터 spotlight, 승률 강조 카드, 최근 경기 결과 배지를 추가해 상세 화면을 전적 사이트 톤으로 2차 고도화했습니다.
+42. stats API의 `streakStats`, `activityStats`를 통계 패널 카드로 연결했습니다.
+43. API 오류 `code`를 현재 locale의 오류 문구로 변환해 표시하도록 정리했습니다.
+44. 리더보드와 검색 이력 기반 추천 검색 UI/API 방향을 문서화했습니다.
+45. `GET /api/search/recent`, `GET /api/search/popular`를 호출하는 추천 검색 API 클라이언트를 추가했습니다.
+46. 검색 카드에 최근 검색/인기 검색 추천 UI를 연결하고, 항목 클릭 시 플레이어 상세 조회로 이동하도록 정리했습니다.
+47. 추천 검색 UI 문구를 한국어(`ko`), 영어(`en`), 일본어(`ja`) 리소스에 추가했습니다.
+48. `GET /api/leaderboards/players`를 호출하는 리더보드 API 클라이언트를 추가했습니다.
+49. 검색 화면 아래에 내부 플레이어 리더보드 UI를 연결했습니다.
+    - Prowess
+    - 최근 갱신
+    - 검색 인기
+50. 리더보드 항목 클릭 시 해당 플레이어 상세 조회로 이동하도록 연결했습니다.
 
 ### 현재 단계
 
-- 플레이어 검색, 프로필 요약, 공통 전적 필터, 최근 경기 더보기/갱신 목록, backend 통계 API 연동, 상세 통계 표시, 상세 URL 라우팅은 완료된 상태입니다.
-- 아직 화면 구조는 초기 기능 검증용이며, 디자인은 추후 TKNOW.GG/EWGF.GG를 참고해 고도화합니다.
+- 플레이어 검색, 프로필 요약, 추천 검색 UI, 내부 리더보드 UI, 공통 전적 필터, locale 기반 캐릭터 선택형 필터, 랭크/전투 타입 locale 표시, 주요 UI 문구 i18n 리소스와 언어 선택 UI, locale 기반 API 오류 표시, 캐릭터 초상화 fallback과 자산 정책, T8LAB 전용 초상화 placeholder, 최근 경기 더보기/전체 갱신 목록, backend 통계 API 연동, streak/activity 확장 통계 표시, 상세 URL 라우팅, 대시보드 레이아웃, 프로필 상단 전적 갱신 액션, 상세 화면 2차 디자인 고도화, 리더보드/추천 검색 설계는 완료된 상태입니다.
+- 아직 전체 디자인은 초기 구축 단계이며, 추후 TKNOW.GG/EWGF.GG를 참고해 추가 고도화합니다.
 
 ### 다음 작업
 
-1. 전적 사이트다운 상세 화면 디자인을 고도화합니다.
-2. 필터 UI를 캐릭터 선택 목록, 플랫폼/지역 등으로 확장합니다.
-3. 더 보기/필터 상태에 대한 프론트 테스트 전략을 정합니다.
-4. 리더보드와 검색 이력 UI를 설계합니다.
+1. 리더보드 필터 UI를 캐릭터/지역/플랫폼까지 확장합니다.
+2. 닉네임/Tekken ID 자동완성 검색 UI 방향을 정합니다.
+3. 더 보기/필터/추천 검색/리더보드 상태에 대한 프론트 테스트 전략을 정합니다.
+
+## 캐릭터 이미지 자산 규칙
+
+캐릭터 이미지는 아래 경로 규칙을 사용합니다.
+
+```text
+frontend/public/assets/characters/{assetKey}.webp
+```
+
+예시:
+
+```text
+frontend/public/assets/characters/dragunov.webp
+frontend/public/assets/characters/kazuya.webp
+frontend/public/assets/characters/reina.webp
+```
+
+이미지가 없으면 화면에서는 텍스트 fallback을 표시합니다.
 
 ## 1. 사전 준비
 
@@ -126,6 +167,9 @@ POST /api/ewgf/profile
 현재 또는 추후 프론트엔드에서 사용할 서비스 전용 API:
 
 ```http
+GET /api/search/recent
+GET /api/search/popular
+GET /api/leaderboards/players
 GET /api/players/{tekkenId}
 GET /api/players/{tekkenId}/matches
 GET /api/players/{tekkenId}/stats

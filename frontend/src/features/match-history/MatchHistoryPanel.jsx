@@ -1,19 +1,19 @@
-import { Activity, AlertCircle, Loader2, RefreshCw, Trophy } from 'lucide-react';
-import { battleTypeLabel, displayValue, formatDate } from '../../shared/utils/formatters';
+import { Activity, AlertCircle, Loader2, Trophy } from 'lucide-react';
+import { CharacterPortrait } from '../../shared/components/CharacterPortrait';
+import { findCharacterOption } from '../../shared/utils/characters';
+import { displayValue, formatDateByLocale } from '../../shared/utils/formatters';
+import { localizedBattleTypeLabel, localizedRankLabel } from '../../shared/utils/gameMetadata';
 
-export function MatchHistoryPanel({ matches, loading, error, total, hasMore, onRefresh, onLoadMore }) {
+export function MatchHistoryPanel({ matches, characterOptions = [], locale = 'ko', t, loading, refreshing, error, total, hasMore, onLoadMore }) {
   return (
-    <section className="matches-panel" aria-label="최근 경기 목록">
+    <section className="matches-panel" aria-label={t('matches.ariaLabel')}>
       <div className="section-header">
         <div>
-          <p className="eyebrow">Match History</p>
-          <h2>최근 경기</h2>
+          <p className="eyebrow">{t('matches.eyebrow')}</p>
+          <h2>{t('matches.title')}</h2>
         </div>
         <div className="section-actions">
-          <span>{loading && !matches.length ? '불러오는 중' : `${matches.length}/${total || matches.length} games`}</span>
-          <button className="icon-action" type="button" onClick={onRefresh} disabled={loading} aria-label="최근 경기 갱신">
-            {loading ? <Loader2 aria-hidden="true" className="spin" /> : <RefreshCw aria-hidden="true" />}
-          </button>
+          <span>{refreshing ? t('matches.refreshing') : loading && !matches.length ? t('matches.loading') : `${matches.length}/${total || matches.length} ${t('stats.games')}`}</span>
         </div>
       </div>
 
@@ -28,8 +28,8 @@ export function MatchHistoryPanel({ matches, loading, error, total, hasMore, onR
         <div className="empty-panel inline">
           <Loader2 aria-hidden="true" className="spin" />
           <div>
-            <strong>최근 경기를 불러오고 있습니다.</strong>
-            <p>EWGF battles 응답을 T8LAB 매치 형식으로 정리하는 중입니다.</p>
+            <strong>{t('matches.loadingTitle')}</strong>
+            <p>{t('matches.loadingDescription')}</p>
           </div>
         </div>
       )}
@@ -38,8 +38,8 @@ export function MatchHistoryPanel({ matches, loading, error, total, hasMore, onR
         <div className="empty-panel inline">
           <Activity aria-hidden="true" />
           <div>
-            <strong>표시할 최근 경기가 없습니다.</strong>
-            <p>EWGF에서 battles 데이터가 비어 있으면 이 영역이 비어 있습니다.</p>
+            <strong>{t('matches.emptyTitle')}</strong>
+            <p>{t('matches.emptyDescription')}</p>
           </div>
         </div>
       )}
@@ -47,7 +47,13 @@ export function MatchHistoryPanel({ matches, loading, error, total, hasMore, onR
       {!!matches.length && (
         <div className="match-list">
           {matches.map((match) => (
-            <MatchRow key={match.externalMatchKey || `${match.battleAt}-${match.opponent?.tekkenId}`} match={match} />
+            <MatchRow
+              key={match.externalMatchKey || `${match.battleAt}-${match.opponent?.tekkenId}`}
+              match={match}
+              characterOptions={characterOptions}
+              locale={locale}
+              t={t}
+            />
           ))}
         </div>
       )}
@@ -55,31 +61,38 @@ export function MatchHistoryPanel({ matches, loading, error, total, hasMore, onR
       {hasMore && (
         <button className="load-more-button" type="button" onClick={onLoadMore} disabled={loading}>
           {loading ? <Loader2 aria-hidden="true" className="spin" /> : null}
-          <span>{loading ? '불러오는 중' : '더 보기'}</span>
+          <span>{loading ? t('matches.loading') : t('matches.loadMore')}</span>
         </button>
       )}
     </section>
   );
 }
 
-function MatchRow({ match }) {
+function MatchRow({ match, characterOptions, locale, t }) {
   const isWin = match.result === 'WIN';
   const my = match.my || {};
   const opponent = match.opponent || {};
+  const myCharacter = findCharacterOption(characterOptions, my.character);
+  const opponentCharacter = findCharacterOption(characterOptions, opponent.character);
 
   return (
     <article className={`match-row ${isWin ? 'win' : 'loss'}`}>
       <div className="result-mark">
-        <strong>{isWin ? '승' : match.result === 'LOSS' ? '패' : '-'}</strong>
-        <span>{battleTypeLabel(match.battleType)}</span>
+        <strong>{isWin ? t('matches.win') : match.result === 'LOSS' ? t('matches.loss') : '-'}</strong>
+        <span>{localizedBattleTypeLabel(match.battleType, locale)}</span>
       </div>
 
       <div className="match-main">
         <div className="fighter self">
-          <span className="fighter-label">MY</span>
-          <strong>{displayValue(my.character)}</strong>
-          <p>{displayValue(my.name)}</p>
-          <em>{displayValue(my.rank)}</em>
+          <span className="fighter-label">{t('matches.me')}</span>
+          <div className="fighter-character">
+            <div>
+              <strong>{displayValue(my.character)}</strong>
+              <p>{displayValue(my.name)}</p>
+            </div>
+            <CharacterPortrait character={myCharacter} label={my.character} />
+          </div>
+          <em>{displayValue(localizedRankLabel(my.rank, locale))}</em>
         </div>
 
         <div className="versus">
@@ -88,15 +101,20 @@ function MatchRow({ match }) {
         </div>
 
         <div className="fighter">
-          <span className="fighter-label">OPP</span>
-          <strong>{displayValue(opponent.character)}</strong>
-          <p>{displayValue(opponent.name)}</p>
-          <em>{displayValue(opponent.rank)}</em>
+          <span className="fighter-label">{t('matches.opponent')}</span>
+          <div className="fighter-character">
+            <CharacterPortrait character={opponentCharacter} label={opponent.character} />
+            <div>
+              <strong>{displayValue(opponent.character)}</strong>
+              <p>{displayValue(opponent.name)}</p>
+            </div>
+          </div>
+          <em>{displayValue(localizedRankLabel(opponent.rank, locale))}</em>
         </div>
       </div>
 
       <div className="match-meta">
-        <span>{formatDate(match.battleAt)}</span>
+        <span>{formatDateByLocale(match.battleAt, locale)}</span>
       </div>
     </article>
   );

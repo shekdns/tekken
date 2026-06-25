@@ -1,4 +1,5 @@
 import { RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
+import { BATTLE_TYPE_OPTIONS, localizedBattleTypeLabel } from '../../shared/utils/gameMetadata';
 
 export const DEFAULT_PLAYER_FILTERS = {
   battleType: 'ALL',
@@ -16,57 +17,77 @@ export function toApiFilters(filters) {
   };
 }
 
-export function PlayerFiltersPanel({ filters, loading, onChange, onSubmit, onReset }) {
+export function PlayerFiltersPanel({ filters, characterOptions = [], locale = 'ko', t, loading, onChange, onSubmit, onReset }) {
   const updateFilter = (key, value) => {
     onChange({ ...filters, [key]: value });
   };
+  const characterLabel = (character) => {
+    const localizedName = character.localizedNames?.[locale] || character.localizedNames?.en;
+    if (localizedName && localizedName !== character.name) {
+      return `${localizedName} (${character.displayName || character.name})`;
+    }
+    return character.displayName || character.name;
+  };
 
   return (
-    <section className="filters-panel" aria-label="전적 필터">
+    <section className="filters-panel" aria-label={t('filters.ariaLabel')}>
       <div className="filters-heading">
         <div>
-          <p className="eyebrow">Filters</p>
-          <h2>전적 기준</h2>
+          <p className="eyebrow">{t('filters.eyebrow')}</p>
+          <h2>{t('filters.title')}</h2>
         </div>
         <SlidersHorizontal aria-hidden="true" />
       </div>
 
       <div className="filter-grid">
         <label>
-          <span>전투 타입</span>
+          <span>{t('filters.battleType')}</span>
           <select value={filters.battleType} onChange={(event) => updateFilter('battleType', event.target.value)}>
-            <option value="ALL">전체</option>
-            <option value="RANKED_BATTLE">랭크 매치</option>
-            <option value="QUICK_BATTLE">퀵 매치</option>
-            <option value="PLAYER_BATTLE">플레이어 매치</option>
+            {BATTLE_TYPE_OPTIONS.map((battleType) => (
+              <option key={battleType} value={battleType}>
+                {localizedBattleTypeLabel(battleType, locale)}
+              </option>
+            ))}
           </select>
         </label>
 
         <label>
-          <span>내 캐릭터</span>
-          <input
+          <span>{t('filters.myCharacter')}</span>
+          <select
             value={filters.character}
             onChange={(event) => updateFilter('character', event.target.value)}
-            placeholder="예: Dragunov"
-          />
+          >
+            <option value="">{t('filters.all')}</option>
+            {characterOptions.map((character) => (
+              <option key={character.id} value={character.name}>
+                {characterLabel(character)}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
-          <span>상대 캐릭터</span>
-          <input
+          <span>{t('filters.opponentCharacter')}</span>
+          <select
             value={filters.opponentCharacter}
             onChange={(event) => updateFilter('opponentCharacter', event.target.value)}
-            placeholder="예: Bryan"
-          />
+          >
+            <option value="">{t('filters.all')}</option>
+            {characterOptions.map((character) => (
+              <option key={character.id} value={character.name}>
+                {characterLabel(character)}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
-          <span>기간</span>
+          <span>{t('filters.period')}</span>
           <select value={filters.days} onChange={(event) => updateFilter('days', event.target.value)}>
-            <option value="ALL">전체</option>
-            <option value="7">최근 7일</option>
-            <option value="30">최근 30일</option>
-            <option value="90">최근 90일</option>
+            <option value="ALL">{t('filters.all')}</option>
+            <option value="7">{t('filters.last7Days')}</option>
+            <option value="30">{t('filters.last30Days')}</option>
+            <option value="90">{t('filters.last90Days')}</option>
           </select>
         </label>
       </div>
@@ -74,11 +95,11 @@ export function PlayerFiltersPanel({ filters, loading, onChange, onSubmit, onRes
       <div className="filter-actions">
         <button className="secondary-action" type="button" onClick={onReset} disabled={loading}>
           <RotateCcw aria-hidden="true" />
-          <span>초기화</span>
+          <span>{t('filters.reset')}</span>
         </button>
         <button className="primary-action" type="button" onClick={onSubmit} disabled={loading}>
           <Search aria-hidden="true" />
-          <span>{loading ? '적용 중' : '필터 적용'}</span>
+          <span>{loading ? t('filters.applying') : t('filters.apply')}</span>
         </button>
       </div>
     </section>

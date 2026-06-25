@@ -63,6 +63,13 @@ class PlayerStatsCalculatorTest {
                     assertThat(opponent.games()).isEqualTo(2);
                     assertThat(opponent.winRate()).isEqualTo(50);
                 });
+        assertThat(response.streakStats().currentType()).isEqualTo("WIN");
+        assertThat(response.streakStats().currentCount()).isEqualTo(1);
+        assertThat(response.streakStats().longestWin()).isEqualTo(1);
+        assertThat(response.streakStats().longestLoss()).isEqualTo(1);
+        assertThat(response.activityStats().latestBattleAt()).isEqualTo(now.minus(1, ChronoUnit.DAYS));
+        assertThat(response.activityStats().firstBattleAt()).isEqualTo(now.minus(2, ChronoUnit.DAYS));
+        assertThat(response.activityStats().activeDays()).isEqualTo(2);
     }
 
     @Test
@@ -82,6 +89,35 @@ class PlayerStatsCalculatorTest {
 
         assertThat(response.total()).isEqualTo(1);
         assertThat(response.filters()).isEqualTo(new PlayerStatsFilters(100, null, null, null, null));
+    }
+
+    @Test
+    void calculatesCurrentAndLongestStreaks() {
+        Instant now = Instant.now();
+        List<PlayerMatchSummary> matches = List.of(
+                match("1", now.minus(1, ChronoUnit.HOURS), "RANKED_BATTLE", "WIN", "Dragunov", "Bryan"),
+                match("2", now.minus(2, ChronoUnit.HOURS), "RANKED_BATTLE", "WIN", "Dragunov", "Bryan"),
+                match("3", now.minus(3, ChronoUnit.HOURS), "RANKED_BATTLE", "LOSS", "Dragunov", "Bryan"),
+                match("4", now.minus(4, ChronoUnit.HOURS), "RANKED_BATTLE", "LOSS", "Dragunov", "Bryan"),
+                match("5", now.minus(5, ChronoUnit.HOURS), "RANKED_BATTLE", "LOSS", "Dragunov", "Bryan"),
+                match("6", now.minus(6, ChronoUnit.HOURS), "RANKED_BATTLE", "WIN", "Dragunov", "Bryan"));
+
+        PlayerStatsResponse response = PlayerStatsCalculator.fromMatches(
+                "27tB4yhFmfNE",
+                "db",
+                now,
+                matches,
+                100,
+                null,
+                null,
+                null,
+                null);
+
+        assertThat(response.streakStats().currentType()).isEqualTo("WIN");
+        assertThat(response.streakStats().currentCount()).isEqualTo(2);
+        assertThat(response.streakStats().longestWin()).isEqualTo(2);
+        assertThat(response.streakStats().longestLoss()).isEqualTo(3);
+        assertThat(response.activityStats().activeDays()).isEqualTo(1);
     }
 
     private static PlayerMatchSummary match(

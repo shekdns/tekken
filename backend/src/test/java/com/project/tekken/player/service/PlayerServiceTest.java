@@ -134,6 +134,37 @@ class PlayerServiceTest {
     }
 
     @Test
+    void forceRefreshesProfileFromEwgfEvenWhenFreshCacheExists() {
+        ApiCacheEntity cache = new ApiCacheEntity(
+                "ewgf:profile:" + NORMALIZED_TEKKEN_ID,
+                "ewgf",
+                Map.of("data", profile("Cached Player", "Dragunov", "God of Destruction")),
+                Instant.now().plus(10, ChronoUnit.MINUTES),
+                Instant.now().minus(1, ChronoUnit.MINUTES));
+        when(apiCacheRepository.findById("ewgf:profile:" + NORMALIZED_TEKKEN_ID)).thenReturn(Optional.of(cache));
+        when(playerRepository.findByTekkenId(NORMALIZED_TEKKEN_ID)).thenReturn(Optional.empty());
+        when(ewgfApiClient.getProfile(TEKKEN_ID)).thenReturn(ResponseEntity.ok("""
+                {
+                  "data": {
+                    "nickname": "Refreshed Player",
+                    "main_character": { "Jin": "Tekken God" },
+                    "tekken_prowess": 300000
+                  }
+                }
+                """));
+
+        PlayerProfileResponse response = playerService.getProfile(TEKKEN_ID, true);
+
+        assertThat(response.source()).isEqualTo("ewgf");
+        assertThat(response.summary().name()).isEqualTo("Refreshed Player");
+        assertThat(response.summary().mainCharacter()).isEqualTo("Jin");
+        assertThat(response.summary().rank()).isEqualTo("Tekken God");
+        verify(ewgfApiClient).getProfile(TEKKEN_ID);
+        verify(playerRepository).save(any(PlayerEntity.class));
+        verify(apiCacheRepository).save(any(ApiCacheEntity.class));
+    }
+
+    @Test
     void filtersAndPagesMatchesFromCache() {
         Instant now = Instant.now();
         ApiCacheEntity cache = new ApiCacheEntity(
@@ -388,8 +419,11 @@ class PlayerServiceTest {
         assertThatThrownBy(() -> playerService.getMatches(TEKKEN_ID, 0, 12, null, null, null, null))
                 .isInstanceOf(PlayerApiException.class)
                 .hasMessage("EWGF API request failed: /external/battles/" + TEKKEN_ID)
-                .extracting(exception -> ((PlayerApiException) exception).getStatusCode())
-                .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+                .satisfies(exception -> {
+                    PlayerApiException playerApiException = (PlayerApiException) exception;
+                    assertThat(playerApiException.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+                    assertThat(playerApiException.getCode()).isEqualTo("EWGF_REQUEST_FAILED");
+                });
     }
 
     @Test
@@ -400,8 +434,11 @@ class PlayerServiceTest {
         assertThatThrownBy(() -> playerService.getProfile(TEKKEN_ID))
                 .isInstanceOf(PlayerApiException.class)
                 .hasMessage("EWGF API returned invalid JSON: /external/profile/" + TEKKEN_ID)
-                .extracting(exception -> ((PlayerApiException) exception).getStatusCode())
-                .isEqualTo(HttpStatus.BAD_GATEWAY);
+                .satisfies(exception -> {
+                    PlayerApiException playerApiException = (PlayerApiException) exception;
+                    assertThat(playerApiException.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(playerApiException.getCode()).isEqualTo("EWGF_INVALID_JSON");
+                });
     }
 
     @Test

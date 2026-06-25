@@ -44,6 +44,8 @@ export function calculateMatchStats(matches) {
     wins,
     losses,
     winRate,
+    recent10Wins,
+    recent10Losses: Math.max(recent10.length - recent10Wins, 0),
     recent10Record: `${recent10Wins}승 ${Math.max(recent10.length - recent10Wins, 0)}패`,
     mostPlayedCharacter,
     characterStats,

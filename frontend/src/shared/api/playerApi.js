@@ -1,5 +1,13 @@
 import { normalizeMatch } from '../utils/matches';
 
+function apiError(body, fallbackMessage) {
+  const error = new Error(body?.message || fallbackMessage);
+  error.code = body?.code || null;
+  error.upstreamStatus = body?.upstreamStatus || null;
+  error.path = body?.path || null;
+  return error;
+}
+
 export async function fetchHealth() {
   const response = await fetch('/api/health');
   if (!response.ok) {
@@ -8,15 +16,88 @@ export async function fetchHealth() {
   return response.json();
 }
 
-export async function fetchPlayerProfile(tekkenId) {
-  const response = await fetch(`/api/players/${encodeURIComponent(tekkenId)}`);
+export async function fetchPlayerProfile(tekkenId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.refresh) {
+    params.set('refresh', 'true');
+  }
+
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(`/api/players/${encodeURIComponent(tekkenId)}${query}`);
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.message || `플레이어 정보를 가져오지 못했습니다. HTTP ${response.status}`);
+    throw apiError(body, `플레이어 정보를 가져오지 못했습니다. HTTP ${response.status}`);
   }
 
   return body;
+}
+
+export async function fetchCharacterOptions() {
+  const response = await fetch('/api/characters/options');
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw apiError(body, `캐릭터 옵션을 가져오지 못했습니다. HTTP ${response.status}`);
+  }
+
+  return Array.isArray(body?.characters) ? body.characters : [];
+}
+
+export async function fetchRecentSearches(limit = 10) {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+
+  const response = await fetch(`/api/search/recent?${params.toString()}`);
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw apiError(body, `최근 검색어를 가져오지 못했습니다. HTTP ${response.status}`);
+  }
+
+  return Array.isArray(body?.items) ? body.items : [];
+}
+
+export async function fetchPopularSearches({ days = 7, limit = 10 } = {}) {
+  const params = new URLSearchParams();
+  params.set('days', String(days));
+  params.set('limit', String(limit));
+
+  const response = await fetch(`/api/search/popular?${params.toString()}`);
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw apiError(body, `인기 검색어를 가져오지 못했습니다. HTTP ${response.status}`);
+  }
+
+  return Array.isArray(body?.items) ? body.items : [];
+}
+
+export async function fetchPlayerLeaderboard(options = {}) {
+  const params = new URLSearchParams();
+  params.set('sort', options.sort || 'prowess');
+  params.set('limit', String(options.limit || 10));
+  if (options.character) {
+    params.set('character', options.character);
+  }
+  if (options.region) {
+    params.set('region', options.region);
+  }
+  if (options.platform) {
+    params.set('platform', options.platform);
+  }
+
+  const response = await fetch(`/api/leaderboards/players?${params.toString()}`);
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw apiError(body, `리더보드를 가져오지 못했습니다. HTTP ${response.status}`);
+  }
+
+  return {
+    ...body,
+    items: Array.isArray(body?.items) ? body.items : [],
+  };
 }
 
 export async function fetchPlayerMatches(tekkenId, options = {}) {
@@ -48,7 +129,7 @@ export async function fetchPlayerMatches(tekkenId, options = {}) {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.message || `최근 경기 정보를 가져오지 못했습니다. HTTP ${response.status}`);
+    throw apiError(body, `최근 경기 정보를 가져오지 못했습니다. HTTP ${response.status}`);
   }
 
   const matches = Array.isArray(body?.matches) ? body.matches : [];
@@ -81,7 +162,7 @@ export async function fetchPlayerStats(tekkenId, options = {}) {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.message || `최근 통계를 가져오지 못했습니다. HTTP ${response.status}`);
+    throw apiError(body, `최근 통계를 가져오지 못했습니다. HTTP ${response.status}`);
   }
 
   return body;

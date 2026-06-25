@@ -1,11 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, AlertCircle, CheckCircle2, Swords } from 'lucide-react';
+import { PlayerLeaderboardPanel } from '../features/leaderboard/PlayerLeaderboardPanel';
 import { MatchHistoryPanel } from '../features/match-history/MatchHistoryPanel';
 import { DEFAULT_PLAYER_FILTERS, PlayerFiltersPanel, toApiFilters } from '../features/player-filters/PlayerFiltersPanel';
 import { PlayerProfileCard } from '../features/player-profile/PlayerProfileCard';
 import { PlayerSearchForm } from '../features/player-search/PlayerSearchForm';
 import { PlayerStatsPanel } from '../features/player-stats/PlayerStatsPanel';
-import { fetchHealth, fetchPlayerMatches, fetchPlayerProfile, fetchPlayerStats } from '../shared/api/playerApi';
+import {
+  fetchCharacterOptions,
+  fetchHealth,
+  fetchPlayerLeaderboard,
+  fetchPlayerMatches,
+  fetchPlayerProfile,
+  fetchPlayerStats,
+  fetchPopularSearches,
+  fetchRecentSearches,
+} from '../shared/api/playerApi';
+import { createTranslator, SUPPORTED_LOCALES, translateApiError } from '../shared/i18n/messages';
 import { pushHomePath, pushPlayerPath, tekkenIdFromPath } from '../shared/utils/routing';
 
 export function App() {
@@ -15,12 +26,23 @@ export function App() {
   const [profile, setProfile] = useState(null);
   const [matches, setMatches] = useState([]);
   const [matchPage, setMatchPage] = useState({ total: 0, nextOffset: null, hasMore: false });
+  const [locale, setLocale] = useState('ko');
   const [filters, setFilters] = useState(DEFAULT_PLAYER_FILTERS);
+  const [characterOptions, setCharacterOptions] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [popularSearches, setPopularSearches] = useState([]);
+  const [leaderboardSort, setLeaderboardSort] = useState('prowess');
+  const [leaderboardItems, setLeaderboardItems] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matchesLoading, setMatchesLoading] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [matchesError, setMatchesError] = useState('');
+  const [leaderboardError, setLeaderboardError] = useState('');
   const [error, setError] = useState('');
+  const t = createTranslator(locale);
 
   const loadHealth = async () => {
     try {
@@ -28,7 +50,46 @@ export function App() {
       setHealthError('');
     } catch {
       setHealth(null);
-      setHealthError('백엔드 연결 대기 중');
+      setHealthError('');
+    }
+  };
+
+  const loadCharacterOptions = async () => {
+    try {
+      setCharacterOptions(await fetchCharacterOptions());
+    } catch {
+      setCharacterOptions([]);
+    }
+  };
+
+  const loadSearchSuggestions = async () => {
+    setSuggestionsLoading(true);
+    try {
+      const [recent, popular] = await Promise.all([
+        fetchRecentSearches(8),
+        fetchPopularSearches({ days: 7, limit: 8 }),
+      ]);
+      setRecentSearches(recent);
+      setPopularSearches(popular);
+    } catch {
+      setRecentSearches([]);
+      setPopularSearches([]);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  const loadLeaderboard = async (sort = leaderboardSort) => {
+    setLeaderboardLoading(true);
+    setLeaderboardError('');
+    try {
+      const response = await fetchPlayerLeaderboard({ sort, limit: 10 });
+      setLeaderboardItems(response.items);
+    } catch (leaderboardErr) {
+      setLeaderboardItems([]);
+      setLeaderboardError(translateApiError(locale, leaderboardErr, 'leaderboard.error'));
+    } finally {
+      setLeaderboardLoading(false);
     }
   };
 
@@ -73,7 +134,7 @@ export function App() {
         setMatchPage({ total: 0, nextOffset: null, hasMore: false });
         setStats(null);
       }
-      setMatchesError(matchErr.message || '최근 경기 조회 중 오류가 발생했습니다.');
+      setMatchesError(translateApiError(locale, matchErr, 'errors.matches'));
     } finally {
       setMatchesLoading(false);
     }
@@ -82,7 +143,7 @@ export function App() {
   const loadPlayer = async (nextTekkenId, { updatePath = false } = {}) => {
     const trimmedId = nextTekkenId.trim();
     if (!trimmedId) {
-      setError('Tekken ID를 입력해 주세요.');
+      setError(t('search.emptyError'));
       return;
     }
 
@@ -100,8 +161,9 @@ export function App() {
       setTekkenId(trimmedId);
       setProfile(await fetchPlayerProfile(trimmedId));
       await loadPlayerData(trimmedId, DEFAULT_PLAYER_FILTERS);
+      await loadSearchSuggestions();
     } catch (err) {
-      setError(err.message || '검색 중 오류가 발생했습니다.');
+      setError(translateApiError(locale, err, 'search.genericError'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +185,13 @@ export function App() {
 
   useEffect(() => {
     loadHealth();
+    loadCharacterOptions();
+    loadSearchSuggestions();
   }, []);
+
+  useEffect(() => {
+    loadLeaderboard(leaderboardSort);
+  }, [leaderboardSort]);
 
   useEffect(() => {
     const loadFromPath = () => {
@@ -158,7 +226,7 @@ export function App() {
         append: true,
       });
     } catch (matchErr) {
-      setMatchesError(matchErr.message || '최근 경기 조회 중 오류가 발생했습니다.');
+      setMatchesError(translateApiError(locale, matchErr, 'errors.matches'));
     }
   };
 
@@ -181,42 +249,76 @@ export function App() {
     await loadPlayerData(tekkenId, DEFAULT_PLAYER_FILTERS);
   };
 
-  const refreshMatches = async () => {
-    if (!tekkenId || matchesLoading) {
+  const refreshPlayerData = async () => {
+    if (!tekkenId || matchesLoading || refreshing) {
       return;
     }
 
-    await loadPlayerData(tekkenId, filters, { refresh: true });
+    setRefreshing(true);
+    setError('');
+    setMatchesError('');
+
+    try {
+      setProfile(await fetchPlayerProfile(tekkenId, { refresh: true }));
+      await loadPlayerData(tekkenId, filters, { refresh: true });
+    } catch (err) {
+      setMatchesError(translateApiError(locale, err, 'errors.refresh'));
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const selectSuggestedPlayer = async (suggestedTekkenId) => {
+    await loadPlayer(suggestedTekkenId, { updatePath: true });
+  };
+
+  const changeLeaderboardSort = (nextSort) => {
+    setLeaderboardSort(nextSort);
   };
 
   return (
     <main className="app-shell">
       <section className="search-section">
-        <nav className="topbar" aria-label="서비스 상태">
+        <nav className="topbar" aria-label={t('app.serviceStatus')}>
           <div className="brand">
             <Swords aria-hidden="true" />
             <button type="button" onClick={resetToHome}>T8LAB</button>
           </div>
-          <div className={`server-pill ${health ? 'online' : 'offline'}`}>
-            {health ? <CheckCircle2 aria-hidden="true" /> : <AlertCircle aria-hidden="true" />}
-            <span>{health ? 'Backend online' : healthError || 'Backend offline'}</span>
+          <div className="topbar-actions">
+            <label className="language-select">
+              <span>{t('app.language')}</span>
+              <select value={locale} onChange={(event) => setLocale(event.target.value)}>
+                {SUPPORTED_LOCALES.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className={`server-pill ${health ? 'online' : 'offline'}`}>
+              {health ? <CheckCircle2 aria-hidden="true" /> : <AlertCircle aria-hidden="true" />}
+              <span>{health ? t('app.backendOnline') : healthError || t('app.backendOffline')}</span>
+            </div>
           </div>
         </nav>
 
         <div className="search-layout">
           <div className="search-copy">
-            <p className="eyebrow">Tekken 8 Player Search</p>
-            <h1>플레이어 전적을 빠르게 확인하세요</h1>
-            <p className="lead">
-              Tekken ID 기준으로 EWGF 데이터를 조회하고, 이후 매치 히스토리와 캐릭터 통계까지 확장할 첫 검색 화면입니다.
-            </p>
+            <p className="eyebrow">{t('search.eyebrow')}</p>
+            <h1>{t('search.title')}</h1>
+            <p className="lead">{t('search.description')}</p>
           </div>
 
           <PlayerSearchForm
             tekkenId={tekkenId}
             loading={loading}
+            suggestionsLoading={suggestionsLoading}
+            recentSearches={recentSearches}
+            popularSearches={popularSearches}
+            t={t}
             onChange={setTekkenId}
             onSubmit={searchPlayer}
+            onSuggestionSelect={selectSuggestedPlayer}
           />
         </div>
 
@@ -227,41 +329,77 @@ export function App() {
           </div>
         )}
 
-        <PlayerProfileCard profile={profile} />
-
         {profile && (
-          <PlayerFiltersPanel
-            filters={filters}
-            loading={matchesLoading}
-            onChange={setFilters}
-            onSubmit={applyFilters}
-            onReset={resetFilters}
-          />
-        )}
+          <div className="player-dashboard">
+            <aside className="player-sidebar" aria-label={t('app.sidebarLabel')}>
+              <PlayerProfileCard
+                profile={profile}
+                characterOptions={characterOptions}
+                locale={locale}
+                t={t}
+                refreshing={refreshing}
+                refreshDisabled={matchesLoading || refreshing}
+                onRefresh={refreshPlayerData}
+              />
 
-        {profile && <PlayerStatsPanel matches={matches} stats={stats} />}
+              <PlayerFiltersPanel
+                filters={filters}
+                characterOptions={characterOptions}
+                locale={locale}
+                t={t}
+                loading={matchesLoading}
+                onChange={setFilters}
+                onSubmit={applyFilters}
+                onReset={resetFilters}
+              />
+            </aside>
 
-        {profile && (
-          <MatchHistoryPanel
-            matches={matches}
-            loading={matchesLoading}
-            error={matchesError}
-            total={matchPage.total}
-            hasMore={matchPage.hasMore}
-            onRefresh={refreshMatches}
-            onLoadMore={loadMoreMatches}
-          />
+            <div className="player-main" aria-label={t('app.mainLabel')}>
+              <PlayerStatsPanel
+                matches={matches}
+                stats={stats}
+                characterOptions={characterOptions}
+                locale={locale}
+                t={t}
+              />
+
+              <MatchHistoryPanel
+                matches={matches}
+                characterOptions={characterOptions}
+                locale={locale}
+                t={t}
+                loading={matchesLoading || refreshing}
+                refreshing={refreshing}
+                error={matchesError}
+                total={matchPage.total}
+                hasMore={matchPage.hasMore}
+                onLoadMore={loadMoreMatches}
+              />
+            </div>
+          </div>
         )}
 
         {!profile && !error && (
-          <section className="empty-panel" aria-label="검색 전 상태">
+          <section className="empty-panel" aria-label={t('app.emptyTitle')}>
             <Activity aria-hidden="true" />
             <div>
-              <strong>검색 결과가 여기에 표시됩니다.</strong>
-              <p>백엔드와 DB가 실행된 상태에서 Tekken ID를 입력하면 프로필을 불러옵니다.</p>
+              <strong>{t('app.emptyTitle')}</strong>
+              <p>{t('app.emptyDescription')}</p>
             </div>
           </section>
         )}
+
+        <PlayerLeaderboardPanel
+          items={leaderboardItems}
+          sort={leaderboardSort}
+          loading={leaderboardLoading}
+          error={leaderboardError}
+          characterOptions={characterOptions}
+          locale={locale}
+          t={t}
+          onSortChange={changeLeaderboardSort}
+          onPlayerSelect={selectSuggestedPlayer}
+        />
       </section>
     </main>
   );

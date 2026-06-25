@@ -54,6 +54,17 @@ Long-term responsibilities:
 - Combine EWGF and Wavu data.
 - Support user favorites and accounts.
 
+## Discovery Direction
+
+Search suggestions and leaderboards are designed in `docs/leaderboard-search-history.md`.
+
+Initial discovery features should use existing PostgreSQL data first:
+
+- `player_search_history` for recent and popular searches.
+- `players` snapshots for internal T8LAB leaderboards.
+
+External leaderboard sources such as Wavu should be integrated later through a datasource boundary, without leaking provider-specific response shapes to the frontend.
+
 ## Local Development
 
 PostgreSQL should be started through Docker Compose so macOS and Windows use the same database setup.
@@ -88,3 +99,15 @@ cd backend
 ```
 
 Environment variables should be set outside the repository or through local developer tooling. Secret values should not be committed.
+
+## Frontend Asset Direction
+
+Character images are served from the Vite public asset path:
+
+```text
+frontend/public/assets/characters/{assetKey}.webp
+```
+
+The `assetKey` comes from the backend character option API. If a file is missing, the frontend must keep rendering a safe fallback.
+
+Production image files require source tracking through the asset policy in `docs/asset-policy.md`.
