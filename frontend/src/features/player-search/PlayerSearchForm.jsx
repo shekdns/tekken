@@ -1,4 +1,4 @@
-import { Flame, Loader2, Search, TimerReset } from 'lucide-react';
+import { Flame, Loader2, Search, TimerReset, UserRoundSearch } from 'lucide-react';
 
 export const SAMPLE_TEKKEN_ID = '27tB-4yhF-mfNE';
 
@@ -30,12 +30,69 @@ function SuggestionGroup({ icon: Icon, title, items, emptyText, onSelect }) {
   );
 }
 
+function AutocompleteList({ items, loading, query, t, onSelect }) {
+  if (query.trim().length < 2) {
+    return null;
+  }
+
+  return (
+    <div className="autocomplete-panel" aria-label={t('search.autocompleteAriaLabel')}>
+      <div className="suggestion-heading">
+        <UserRoundSearch aria-hidden="true" />
+        <span>{t('search.autocompleteTitle')}</span>
+      </div>
+      {loading ? (
+        <div className="suggestion-loading">
+          <Loader2 aria-hidden="true" className="spin" />
+          <span>{t('search.autocompleteLoading')}</span>
+        </div>
+      ) : items.length > 0 ? (
+        <div className="autocomplete-list">
+          {items.map((item) => (
+            <button
+              key={`${item.source}-${item.tekkenId}`}
+              type="button"
+              className="autocomplete-row"
+              onClick={() => onSelect(item.tekkenId)}
+            >
+              <span className="autocomplete-player">
+                <strong>{item.name || item.displayTekkenId || item.tekkenId}</strong>
+                <em>{item.displayTekkenId || item.tekkenId}</em>
+              </span>
+              <span className="autocomplete-meta">
+                {item.mainCharacter && <span>{item.mainCharacter}</span>}
+                {item.danRank && <span>{item.danRank}</span>}
+                {item.platform && <span>{item.platform}</span>}
+                <span>{sourceLabel(item.source, t)}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <span className="suggestion-empty">{t('search.autocompleteEmpty')}</span>
+      )}
+    </div>
+  );
+}
+
+function sourceLabel(source, t) {
+  if (source === 'wavu') {
+    return t('search.sourceWavu');
+  }
+  if (source === 'search_history') {
+    return t('search.sourceHistory');
+  }
+  return t('search.sourceT8lab');
+}
+
 export function PlayerSearchForm({
   tekkenId,
   loading,
   suggestionsLoading,
+  autocompleteLoading,
   recentSearches,
   popularSearches,
+  autocompleteItems,
   t,
   onChange,
   onSubmit,
@@ -62,6 +119,14 @@ export function PlayerSearchForm({
       <button className="sample-button" type="button" onClick={() => onChange(SAMPLE_TEKKEN_ID)}>
         {t('search.sample')}
       </button>
+
+      <AutocompleteList
+        items={autocompleteItems}
+        loading={autocompleteLoading}
+        query={tekkenId}
+        t={t}
+        onSelect={onSuggestionSelect}
+      />
 
       <div className="search-suggestions" aria-label={t('search.suggestionsAriaLabel')}>
         {suggestionsLoading ? (

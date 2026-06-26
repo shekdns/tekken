@@ -70,16 +70,21 @@ T8LAB의 프론트엔드 프로젝트입니다. React + Vite 기반으로 철권
     - 최근 갱신
     - 검색 인기
 50. 리더보드 항목 클릭 시 해당 플레이어 상세 조회로 이동하도록 연결했습니다.
+51. `GET /api/search/players?q={query}&limit=8`를 호출하는 자동완성 API 클라이언트를 추가했습니다.
+52. 검색 입력 중 닉네임/Tekken ID 후보를 dropdown 형태로 표시하도록 연결했습니다.
+53. 자동완성 후보 클릭 시 기존 플레이어 상세 조회 흐름으로 이동하도록 연결했습니다.
+54. 자동완성 UI 문구를 한국어(`ko`), 영어(`en`), 일본어(`ja`) 리소스에 추가했습니다.
+55. 닉네임 입력 후 Enter 검색 시 자동완성 후보의 Tekken ID로 상세 조회되도록 연결했습니다.
 
 ### 현재 단계
 
-- 플레이어 검색, 프로필 요약, 추천 검색 UI, 내부 리더보드 UI, 공통 전적 필터, locale 기반 캐릭터 선택형 필터, 랭크/전투 타입 locale 표시, 주요 UI 문구 i18n 리소스와 언어 선택 UI, locale 기반 API 오류 표시, 캐릭터 초상화 fallback과 자산 정책, T8LAB 전용 초상화 placeholder, 최근 경기 더보기/전체 갱신 목록, backend 통계 API 연동, streak/activity 확장 통계 표시, 상세 URL 라우팅, 대시보드 레이아웃, 프로필 상단 전적 갱신 액션, 상세 화면 2차 디자인 고도화, 리더보드/추천 검색 설계는 완료된 상태입니다.
+- 플레이어 검색, 프로필 요약, 자동완성 dropdown UI, 추천 검색 UI, 내부 리더보드 UI, 공통 전적 필터, locale 기반 캐릭터 선택형 필터, 랭크/전투 타입 locale 표시, 주요 UI 문구 i18n 리소스와 언어 선택 UI, locale 기반 API 오류 표시, 캐릭터 초상화 fallback과 자산 정책, T8LAB 전용 초상화 placeholder, 최근 경기 더보기/전체 갱신 목록, backend 통계 API 연동, streak/activity 확장 통계 표시, 상세 URL 라우팅, 대시보드 레이아웃, 프로필 상단 전적 갱신 액션, 상세 화면 2차 디자인 고도화, 리더보드/추천 검색 설계는 완료된 상태입니다.
 - 아직 전체 디자인은 초기 구축 단계이며, 추후 TKNOW.GG/EWGF.GG를 참고해 추가 고도화합니다.
 
 ### 다음 작업
 
 1. 리더보드 필터 UI를 캐릭터/지역/플랫폼까지 확장합니다.
-2. 닉네임/Tekken ID 자동완성 검색 UI 방향을 정합니다.
+2. Wavu 자동완성 결과 캐싱 정책을 정리합니다.
 3. 더 보기/필터/추천 검색/리더보드 상태에 대한 프론트 테스트 전략을 정합니다.
 
 ## 캐릭터 이미지 자산 규칙
@@ -169,6 +174,7 @@ POST /api/ewgf/profile
 ```http
 GET /api/search/recent
 GET /api/search/popular
+GET /api/search/players
 GET /api/leaderboards/players
 GET /api/players/{tekkenId}
 GET /api/players/{tekkenId}/matches

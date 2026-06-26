@@ -65,6 +65,23 @@ Initial discovery features should use existing PostgreSQL data first:
 
 External leaderboard sources such as Wavu should be integrated later through a datasource boundary, without leaking provider-specific response shapes to the frontend.
 
+## Wavu Datasource Boundary
+
+Wavu integration starts as a disabled backend datasource boundary.
+
+```text
+com.project.tekken.datasource.wavu
+  WavuDataSourceProperties
+  WavuDataSourceClient
+  WavuDataSourceService
+```
+
+The frontend must not call Wavu directly. Wavu responses must first be verified, cached, and mapped into T8LAB-owned DTOs.
+
+Detailed plan:
+
+- `docs/wavu-datasource-plan.md`
+
 ## Local Development
 
 PostgreSQL should be started through Docker Compose so macOS and Windows use the same database setup.
@@ -80,6 +97,8 @@ EWGF_API_KEY
 DB_URL
 DB_USERNAME
 DB_PASSWORD
+WAVU_BASE_URL
+WAVU_ENABLED
 ```
 
 ## Cross-Platform Notes

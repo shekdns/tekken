@@ -277,6 +277,89 @@ h1 {
   border-top: 1px solid #e0e7ec;
 }
 
+.autocomplete-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  background: #f7fafb;
+  border: 1px solid #d9e4ea;
+  border-radius: 8px;
+}
+
+.autocomplete-list {
+  display: grid;
+  gap: 8px;
+}
+
+.autocomplete-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  color: #172027;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #d8e2e8;
+  border-radius: 8px;
+}
+
+.autocomplete-row:hover {
+  border-color: #9db1bd;
+  box-shadow: 0 12px 24px rgba(20, 32, 40, 0.08);
+}
+
+.autocomplete-player,
+.autocomplete-meta {
+  display: flex;
+  min-width: 0;
+}
+
+.autocomplete-player {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.autocomplete-player strong,
+.autocomplete-player em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autocomplete-player strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.autocomplete-player em {
+  color: #647684;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.autocomplete-meta {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.autocomplete-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  color: #536572;
+  background: #edf3f6;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .suggestion-loading,
 .suggestion-heading,
 .suggestion-chip {
@@ -1549,6 +1632,14 @@ h1 {
 
   .search-input-row button {
     grid-column: 1 / -1;
+  }
+
+  .autocomplete-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .autocomplete-meta {
+    justify-content: flex-start;
   }
 
   .result-header {

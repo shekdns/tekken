@@ -89,17 +89,30 @@ Tekken 8 match history and analysis platform.
     - Prowess
     - 최근 갱신
     - 검색 인기
+68. Wavu 연동을 위한 `datasource.wavu` 패키지 경계를 추가했습니다.
+69. Wavu 연동 원칙과 단계별 확장 방향을 `docs/wavu-datasource-plan.md`로 정리했습니다.
+70. 닉네임/Tekken ID 자동완성 검색 API/UI 방향을 `docs/leaderboard-search-history.md`에 정리했습니다.
+71. 닉네임/Tekken ID 자동완성 검색 backend API를 추가했습니다.
+    - `GET /api/search/players?q={query}&limit=10`
+72. 자동완성 검색 서비스 테스트를 추가해 짧은 검색어, players 우선순위, search history fallback, limit 보정을 검증했습니다.
+73. Wavu `/player/search?q={query}` HTML 응답을 파싱해 자동완성 검색 후보에 병합하는 구조를 추가했습니다.
+74. Wavu 검색 파싱 테스트와 자동완성 Wavu fallback 테스트를 추가했습니다.
+75. 프론트 검색창에 닉네임/Tekken ID 자동완성 dropdown UI를 연결했습니다.
+76. 자동완성 문구를 한국어(`ko`), 영어(`en`), 일본어(`ja`) i18n 리소스에 추가했습니다.
+77. 닉네임 입력 후 Enter 검색 시 자동완성 후보의 Tekken ID로 상세 조회되도록 검색 흐름을 정리했습니다.
+78. Wavu 자동완성 결과를 `api_cache`에 10분 TTL로 저장하도록 캐싱을 추가했습니다.
+79. `WAVU_ENABLED=true` 상태에서 `/api/search/players?q=lowhigh&limit=5` 실제 조회와 cache 저장을 확인했습니다.
 
 ### 현재 단계
 
-- 플레이어 검색, 프로필 요약, 공통 전적 필터, 캐릭터 선택 옵션/다국어 메타데이터 API, 랭크/전투 타입 locale 메타데이터, 주요 UI 문구 i18n 리소스와 언어 선택 UI, locale 기반 API 오류 표시, 캐릭터 이미지 자산 fallback 구조와 자산 정책, T8LAB 전용 초상화 placeholder, 최근 경기 목록/더보기/전체 갱신, DB 기준 매치 필터/더보기 조회, DB 기준 stats API 계산과 streak/activity 확장 통계, mapper/service 테스트, match sync/query 분리, 역할별 패키지 분리, DB match fresh 우선 사용/fallback, 프론트 통계 표시, 상세 URL 라우팅, 상세 화면 대시보드 레이아웃과 2차 디자인 고도화, 리더보드/추천 검색 설계, 추천 검색 API, 검색 홈 추천 검색 UI, 내부 플레이어 리더보드 API/UI까지 완료된 상태입니다.
-- 다음 단계는 Wavu 연동을 위한 datasource 경계를 설계하거나, 닉네임/Tekken ID 자동완성 검색 설계를 문서에 반영하는 것입니다.
+- 플레이어 검색, 프로필 요약, 공통 전적 필터, 캐릭터 선택 옵션/다국어 메타데이터 API, 랭크/전투 타입 locale 메타데이터, 주요 UI 문구 i18n 리소스와 언어 선택 UI, locale 기반 API 오류 표시, 캐릭터 이미지 자산 fallback 구조와 자산 정책, T8LAB 전용 초상화 placeholder, 최근 경기 목록/더보기/전체 갱신, DB 기준 매치 필터/더보기 조회, DB 기준 stats API 계산과 streak/activity 확장 통계, mapper/service 테스트, match sync/query 분리, 역할별 패키지 분리, DB match fresh 우선 사용/fallback, 프론트 통계 표시, 상세 URL 라우팅, 상세 화면 대시보드 레이아웃과 2차 디자인 고도화, 리더보드/추천 검색 설계, 추천 검색 API, 검색 홈 추천 검색 UI, 내부 플레이어 리더보드 API/UI, Wavu datasource 경계, Wavu 기반 자동완성 후보 병합, 자동완성 검색 backend API/UI까지 완료된 상태입니다.
+- 다음 단계는 리더보드 필터 UI를 확장하거나, Wavu 검색 cache를 검색 snapshot 테이블로 분리할지 검토하는 것입니다.
 
 ### 다음 작업
 
-1. Wavu 연동을 위한 `datasource.wavu` 패키지 경계를 설계합니다.
-2. 닉네임/Tekken ID 자동완성 검색 API/UI 방향을 문서화합니다.
-3. 리더보드 필터 UI를 캐릭터/지역/플랫폼까지 확장합니다.
+1. 리더보드 필터 UI를 캐릭터/지역/플랫폼까지 확장합니다.
+2. Wavu 검색 cache를 장기적으로 별도 search snapshot 테이블로 분리할지 검토합니다.
+3. 더 보기/필터/추천 검색/리더보드 상태에 대한 프론트 테스트 전략을 정합니다.
 
 ## Product Direction
 
@@ -109,6 +122,7 @@ See:
 
 - `docs/product-requirements.md`
 - `docs/architecture.md`
+- `docs/wavu-datasource-plan.md`
 
 ## Requirements
 
@@ -161,6 +175,8 @@ Optional database environment variables:
 DB_URL=jdbc:postgresql://localhost:5432/tekken
 DB_USERNAME=tekken
 DB_PASSWORD=tekken
+WAVU_BASE_URL=https://wank.wavu.wiki
+WAVU_ENABLED=true
 ```
 
 ## Frontend

@@ -93,7 +93,7 @@ class PlayerStatsCalculatorTest {
 
     @Test
     void calculatesCurrentAndLongestStreaks() {
-        Instant now = Instant.now();
+        Instant now = Instant.parse("2026-06-26T12:00:00Z");
         List<PlayerMatchSummary> matches = List.of(
                 match("1", now.minus(1, ChronoUnit.HOURS), "RANKED_BATTLE", "WIN", "Dragunov", "Bryan"),
                 match("2", now.minus(2, ChronoUnit.HOURS), "RANKED_BATTLE", "WIN", "Dragunov", "Bryan"),

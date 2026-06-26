@@ -10,9 +10,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class SearchController {
 
     private final SearchSuggestionService searchSuggestionService;
+    private final PlayerSearchAutocompleteService playerSearchAutocompleteService;
 
-    public SearchController(SearchSuggestionService searchSuggestionService) {
+    public SearchController(
+            SearchSuggestionService searchSuggestionService,
+            PlayerSearchAutocompleteService playerSearchAutocompleteService
+    ) {
         this.searchSuggestionService = searchSuggestionService;
+        this.playerSearchAutocompleteService = playerSearchAutocompleteService;
     }
 
     @GetMapping("/recent")
@@ -26,5 +31,13 @@ public class SearchController {
             @RequestParam(defaultValue = "10") int limit
     ) {
         return searchSuggestionService.popular(days, limit);
+    }
+
+    @GetMapping("/players")
+    public PlayerSearchAutocompleteResponse players(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return playerSearchAutocompleteService.search(q, limit);
     }
 }

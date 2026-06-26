@@ -14,6 +14,19 @@ public interface PlayerSearchHistoryRepository extends JpaRepository<PlayerSearc
     List<PlayerSearchHistoryEntity> findByTekkenIdIsNotNullOrderBySearchedAtDesc(Pageable pageable);
 
     @Query("""
+            select history
+            from PlayerSearchHistoryEntity history
+            where lower(history.query) like concat('%', :query, '%')
+               or lower(replace(coalesce(history.tekkenId, ''), '-', '')) like concat('%', :normalizedQuery, '%')
+               or lower(coalesce(history.tekkenId, '')) like concat('%', :query, '%')
+            order by history.searchedAt desc
+            """)
+    List<PlayerSearchHistoryEntity> findAutocompleteCandidates(
+            @Param("query") String query,
+            @Param("normalizedQuery") String normalizedQuery,
+            Pageable pageable);
+
+    @Query("""
             select
                 history.tekkenId as tekkenId,
                 max(history.query) as query,

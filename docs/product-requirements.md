@@ -17,12 +17,14 @@ Included:
 - Basic win/loss summary.
 - Character usage and win rate summary.
 - PostgreSQL-backed cache and snapshots.
+- Recent/popular search discovery.
+- T8LAB internal leaderboard based on stored player snapshots.
 
 Excluded from MVP:
 - Login.
 - Favorites.
-- Global leaderboard.
-- Wavu integration.
+- Global external leaderboard.
+- Wavu production integration.
 - Patch notes.
 - Live feed.
 - Community features.
@@ -32,6 +34,7 @@ Excluded from MVP:
 - Codename: T8LAB.
 - Primary audience: Korean Tekken 8 players.
 - Search priority: Tekken ID first.
+- Post-MVP search expansion: nickname/Tekken ID autocomplete.
 - Data source: EWGF Pro API first.
 - Database: PostgreSQL.
 - Design tone: data-focused analysis dashboard.
@@ -58,6 +61,7 @@ Planned discovery APIs:
 
 - `GET /api/search/recent`
 - `GET /api/search/popular`
+- `GET /api/search/players`
 - `GET /api/leaderboards/players`
 
 ## Data Policy

@@ -9,6 +9,7 @@ import { PlayerStatsPanel } from '../features/player-stats/PlayerStatsPanel';
 import {
   fetchCharacterOptions,
   fetchHealth,
+  fetchPlayerAutocomplete,
   fetchPlayerLeaderboard,
   fetchPlayerMatches,
   fetchPlayerProfile,
@@ -31,12 +32,14 @@ export function App() {
   const [characterOptions, setCharacterOptions] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [popularSearches, setPopularSearches] = useState([]);
+  const [autocompleteItems, setAutocompleteItems] = useState([]);
   const [leaderboardSort, setLeaderboardSort] = useState('prowess');
   const [leaderboardItems, setLeaderboardItems] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [matchesError, setMatchesError] = useState('');
@@ -171,11 +174,17 @@ export function App() {
 
   const searchPlayer = async (event) => {
     event.preventDefault();
-    await loadPlayer(tekkenId, { updatePath: true });
+    const selectedCandidate = autocompleteItems.length > 0
+      ? matchingAutocompleteItem(tekkenId, autocompleteItems) || autocompleteItems[0]
+      : null;
+    const nextTekkenId = selectedCandidate?.tekkenId || tekkenId;
+    setAutocompleteItems([]);
+    await loadPlayer(nextTekkenId, { updatePath: true });
   };
 
   const resetToHome = () => {
     setTekkenId('');
+    setAutocompleteItems([]);
     setProfile(null);
     resetPlayerData();
     setFilters(DEFAULT_PLAYER_FILTERS);
@@ -192,6 +201,40 @@ export function App() {
   useEffect(() => {
     loadLeaderboard(leaderboardSort);
   }, [leaderboardSort]);
+
+  useEffect(() => {
+    const normalizedQuery = tekkenId.trim();
+    if (normalizedQuery.length < 2) {
+      setAutocompleteItems([]);
+      setAutocompleteLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    setAutocompleteLoading(true);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const items = await fetchPlayerAutocomplete(normalizedQuery, 8);
+        if (active) {
+          setAutocompleteItems(items);
+        }
+      } catch {
+        if (active) {
+          setAutocompleteItems([]);
+        }
+      } finally {
+        if (active) {
+          setAutocompleteLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [tekkenId]);
 
   useEffect(() => {
     const loadFromPath = () => {
@@ -269,6 +312,7 @@ export function App() {
   };
 
   const selectSuggestedPlayer = async (suggestedTekkenId) => {
+    setAutocompleteItems([]);
     await loadPlayer(suggestedTekkenId, { updatePath: true });
   };
 
@@ -313,8 +357,10 @@ export function App() {
             tekkenId={tekkenId}
             loading={loading}
             suggestionsLoading={suggestionsLoading}
+            autocompleteLoading={autocompleteLoading}
             recentSearches={recentSearches}
             popularSearches={popularSearches}
+            autocompleteItems={autocompleteItems}
             t={t}
             onChange={setTekkenId}
             onSubmit={searchPlayer}
@@ -403,4 +449,27 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function matchingAutocompleteItem(query, items) {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) {
+    return null;
+  }
+
+  return items.find((item) => {
+    const values = [
+      item.tekkenId,
+      item.displayTekkenId,
+      item.name,
+    ];
+    return values.some((value) => normalizeSearchText(value) === normalizedQuery);
+  }) || null;
+}
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .replaceAll('-', '')
+    .trim()
+    .toLowerCase();
 }

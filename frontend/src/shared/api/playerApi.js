@@ -73,6 +73,21 @@ export async function fetchPopularSearches({ days = 7, limit = 10 } = {}) {
   return Array.isArray(body?.items) ? body.items : [];
 }
 
+export async function fetchPlayerAutocomplete(query, limit = 8) {
+  const params = new URLSearchParams();
+  params.set('q', query);
+  params.set('limit', String(limit));
+
+  const response = await fetch(`/api/search/players?${params.toString()}`);
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw apiError(body, `플레이어 검색 후보를 가져오지 못했습니다. HTTP ${response.status}`);
+  }
+
+  return Array.isArray(body?.items) ? body.items : [];
+}
+
 export async function fetchPlayerLeaderboard(options = {}) {
   const params = new URLSearchParams();
   params.set('sort', options.sort || 'prowess');
